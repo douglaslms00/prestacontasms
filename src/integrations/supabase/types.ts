@@ -14,16 +14,141 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      advances: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          employee_id: string
+          id: string
+          issued_at: string
+          status: Database["public"]["Enums"]["advance_status"]
+          title: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          employee_id: string
+          id?: string
+          issued_at?: string
+          status?: Database["public"]["Enums"]["advance_status"]
+          title: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          employee_id?: string
+          id?: string
+          issued_at?: string
+          status?: Database["public"]["Enums"]["advance_status"]
+          title?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          advance_id: string
+          amount: number
+          category: string
+          created_at: string
+          description: string
+          id: string
+          receipt_path: string | null
+          spent_at: string
+          user_id: string
+        }
+        Insert: {
+          advance_id: string
+          amount: number
+          category?: string
+          created_at?: string
+          description: string
+          id?: string
+          receipt_path?: string | null
+          spent_at?: string
+          user_id: string
+        }
+        Update: {
+          advance_id?: string
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          receipt_path?: string | null
+          spent_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_advance_id_fkey"
+            columns: ["advance_id"]
+            isOneToOne: false
+            referencedRelation: "advances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      advance_status: "aberto" | "em_analise" | "fechado"
+      app_role: "admin" | "funcionario"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +275,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      advance_status: ["aberto", "em_analise", "fechado"],
+      app_role: ["admin", "funcionario"],
+    },
   },
 } as const
