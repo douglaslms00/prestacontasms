@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { z } from "zod";
 import {
@@ -11,6 +12,7 @@ import {
   Lock,
   Paperclip,
   Send,
+  Sparkles,
   Trash2,
   XCircle,
 } from "lucide-react";
@@ -31,6 +33,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin, useSession } from "@/hooks/useAuth";
 import { brl, dateBR, statusLabel } from "@/lib/format";
 import { generateReport } from "@/lib/report";
+import { readReceipt } from "@/lib/ocr.functions";
+
 
 export const Route = createFileRoute("/_authenticated/adiantamento/$id")({
   head: () => ({
