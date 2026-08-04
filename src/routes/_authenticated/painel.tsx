@@ -106,9 +106,14 @@ function Painel() {
 
   const create = useMutation({
     mutationFn: async (form: z.infer<typeof advanceSchema>) => {
-      const { error } = await supabase
-        .from("advances")
-        .insert({ ...form, created_by: user!.id });
+      const { error } = await supabase.from("advances").insert({
+        title: form.title,
+        description: form.description ?? null,
+        amount: form.amount,
+        employee_id: form.employee_id,
+        issued_at: form.issued_at,
+        created_by: user!.id,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
