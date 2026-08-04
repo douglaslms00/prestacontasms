@@ -19,33 +19,48 @@ export type Database = {
           amount: number
           created_at: string
           created_by: string | null
+          decision: string | null
           description: string | null
           employee_id: string
           id: string
           issued_at: string
+          review_comment: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           status: Database["public"]["Enums"]["advance_status"]
+          submitted_at: string | null
           title: string
         }
         Insert: {
           amount: number
           created_at?: string
           created_by?: string | null
+          decision?: string | null
           description?: string | null
           employee_id: string
           id?: string
           issued_at?: string
+          review_comment?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: Database["public"]["Enums"]["advance_status"]
+          submitted_at?: string | null
           title: string
         }
         Update: {
           amount?: number
           created_at?: string
           created_by?: string | null
+          decision?: string | null
           description?: string | null
           employee_id?: string
           id?: string
           issued_at?: string
+          review_comment?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: Database["public"]["Enums"]["advance_status"]
+          submitted_at?: string | null
           title?: string
         }
         Relationships: []
