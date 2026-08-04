@@ -252,6 +252,8 @@ function Detalhe() {
       setDescription("");
       setAmount("");
       setFile(null);
+      setOcrFilled([]);
+
       queryClient.invalidateQueries({ queryKey: ["expenses", id] });
       queryClient.invalidateQueries({ queryKey: ["advances"] });
     } catch (err) {
