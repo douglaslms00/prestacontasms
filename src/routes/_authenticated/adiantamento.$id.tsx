@@ -553,16 +553,40 @@ function Detalhe() {
                     variant="ghost"
                     size="sm"
                     className="ml-auto"
-                    onClick={() => setFile(null)}
+                    onClick={() => {
+                      setFile(null);
+                      setOcrFilled([]);
+                    }}
                   >
                     Remover
                   </Button>
                 </div>
               ) : null}
+              {reading ? (
+                <p className="inline-flex items-center gap-2 text-sm text-primary">
+                  <Sparkles className="size-4 animate-pulse" /> Lendo o cupom com IA…
+                </p>
+              ) : null}
+              {!reading && ocrFilled.length > 0 ? (
+                <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                  <Sparkles className="size-4 text-primary" /> Preenchemos {ocrFilled.join(", ")} a
+                  partir do cupom. Confira antes de confirmar.
+                </p>
+              ) : null}
+              {file && !reading ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void extractFromReceipt(file)}
+                >
+                  <Sparkles className="mr-2 size-4" /> Ler cupom novamente
+                </Button>
+              ) : null}
             </div>
           </div>
-          <Button onClick={addExpense} disabled={saving}>
+          <Button onClick={addExpense} disabled={saving || reading}>
             {saving ? "Salvando…" : "Adicionar despesa"}
+
           </Button>
         </div>
       ) : null}
