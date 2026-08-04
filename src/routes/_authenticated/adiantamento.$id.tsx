@@ -83,6 +83,10 @@ function Detalhe() {
   const [saving, setSaving] = useState(false);
   const [comment, setComment] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [reading, setReading] = useState(false);
+  const [ocrFilled, setOcrFilled] = useState<string[]>([]);
+  const runOcr = useServerFn(readReceipt);
+
 
   useEffect(() => {
     if (!file || !file.type.startsWith("image/")) {
