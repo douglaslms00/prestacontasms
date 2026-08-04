@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { z } from "zod";
 import {
@@ -11,6 +12,7 @@ import {
   Lock,
   Paperclip,
   Send,
+  Sparkles,
   Trash2,
   XCircle,
 } from "lucide-react";
@@ -31,6 +33,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin, useSession } from "@/hooks/useAuth";
 import { brl, dateBR, statusLabel } from "@/lib/format";
 import { generateReport } from "@/lib/report";
+import { readReceipt } from "@/lib/ocr.functions";
+
 
 export const Route = createFileRoute("/_authenticated/adiantamento/$id")({
   head: () => ({
@@ -79,6 +83,10 @@ function Detalhe() {
   const [saving, setSaving] = useState(false);
   const [comment, setComment] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [reading, setReading] = useState(false);
+  const [ocrFilled, setOcrFilled] = useState<string[]>([]);
+  const runOcr = useServerFn(readReceipt);
+
 
   useEffect(() => {
     if (!file || !file.type.startsWith("image/")) {
@@ -142,9 +150,56 @@ function Detalhe() {
   const isReview = advance.data?.status === "em_analise";
   const isClosed = advance.data?.status === "fechado";
 
+  const toDataUrl = (f: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("Não foi possível ler o arquivo"));
+      reader.readAsDataURL(f);
+    });
+
+  const extractFromReceipt = async (f: File) => {
+    setReading(true);
+    setOcrFilled([]);
+    try {
+      const dataUrl = await toDataUrl(f);
+      const result = await runOcr({
+        data: { dataUrl, mimeType: f.type, fileName: f.name },
+      });
+      const filled: string[] = [];
+      if (result.merchant) {
+        setDescription(result.merchant.slice(0, 200));
+        filled.push("estabelecimento");
+      }
+      if (result.date) {
+        setSpentAt(result.date);
+        filled.push("data");
+      }
+      if (result.amount) {
+        setAmount(result.amount.toFixed(2));
+        filled.push("valor");
+      }
+      if (result.category && CATEGORIES.includes(result.category)) {
+        setCategory(result.category);
+        filled.push("categoria");
+      }
+      setOcrFilled(filled);
+      if (filled.length === 0) {
+        toast.info("Não foi possível ler os dados do cupom. Preencha manualmente.");
+      } else {
+        toast.success("Dados do cupom preenchidos. Confira antes de confirmar.");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha na leitura do cupom");
+    } finally {
+      setReading(false);
+    }
+  };
+
   const pickFile = (f: File | null) => {
     if (!f) {
       setFile(null);
+      setOcrFilled([]);
       return;
     }
     if (!ACCEPTED.includes(f.type)) {
@@ -156,7 +211,9 @@ function Detalhe() {
       return;
     }
     setFile(f);
+    void extractFromReceipt(f);
   };
+
 
   const addExpense = async () => {
     const parsed = expenseSchema.safeParse({
@@ -195,6 +252,8 @@ function Detalhe() {
       setDescription("");
       setAmount("");
       setFile(null);
+      setOcrFilled([]);
+
       queryClient.invalidateQueries({ queryKey: ["expenses", id] });
       queryClient.invalidateQueries({ queryKey: ["advances"] });
     } catch (err) {
@@ -496,16 +555,40 @@ function Detalhe() {
                     variant="ghost"
                     size="sm"
                     className="ml-auto"
-                    onClick={() => setFile(null)}
+                    onClick={() => {
+                      setFile(null);
+                      setOcrFilled([]);
+                    }}
                   >
                     Remover
                   </Button>
                 </div>
               ) : null}
+              {reading ? (
+                <p className="inline-flex items-center gap-2 text-sm text-primary">
+                  <Sparkles className="size-4 animate-pulse" /> Lendo o cupom com IA…
+                </p>
+              ) : null}
+              {!reading && ocrFilled.length > 0 ? (
+                <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                  <Sparkles className="size-4 text-primary" /> Preenchemos {ocrFilled.join(", ")} a
+                  partir do cupom. Confira antes de confirmar.
+                </p>
+              ) : null}
+              {file && !reading ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void extractFromReceipt(file)}
+                >
+                  <Sparkles className="mr-2 size-4" /> Ler cupom novamente
+                </Button>
+              ) : null}
             </div>
           </div>
-          <Button onClick={addExpense} disabled={saving}>
+          <Button onClick={addExpense} disabled={saving || reading}>
             {saving ? "Salvando…" : "Adicionar despesa"}
+
           </Button>
         </div>
       ) : null}
