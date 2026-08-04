@@ -150,9 +150,56 @@ function Detalhe() {
   const isReview = advance.data?.status === "em_analise";
   const isClosed = advance.data?.status === "fechado";
 
+  const toDataUrl = (f: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("Não foi possível ler o arquivo"));
+      reader.readAsDataURL(f);
+    });
+
+  const extractFromReceipt = async (f: File) => {
+    setReading(true);
+    setOcrFilled([]);
+    try {
+      const dataUrl = await toDataUrl(f);
+      const result = await runOcr({
+        data: { dataUrl, mimeType: f.type, fileName: f.name },
+      });
+      const filled: string[] = [];
+      if (result.merchant) {
+        setDescription(result.merchant.slice(0, 200));
+        filled.push("estabelecimento");
+      }
+      if (result.date) {
+        setSpentAt(result.date);
+        filled.push("data");
+      }
+      if (result.amount) {
+        setAmount(result.amount.toFixed(2));
+        filled.push("valor");
+      }
+      if (result.category && CATEGORIES.includes(result.category)) {
+        setCategory(result.category);
+        filled.push("categoria");
+      }
+      setOcrFilled(filled);
+      if (filled.length === 0) {
+        toast.info("Não foi possível ler os dados do cupom. Preencha manualmente.");
+      } else {
+        toast.success("Dados do cupom preenchidos. Confira antes de confirmar.");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha na leitura do cupom");
+    } finally {
+      setReading(false);
+    }
+  };
+
   const pickFile = (f: File | null) => {
     if (!f) {
       setFile(null);
+      setOcrFilled([]);
       return;
     }
     if (!ACCEPTED.includes(f.type)) {
@@ -164,7 +211,9 @@ function Detalhe() {
       return;
     }
     setFile(f);
+    void extractFromReceipt(f);
   };
+
 
   const addExpense = async () => {
     const parsed = expenseSchema.safeParse({
