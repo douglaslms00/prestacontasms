@@ -14,6 +14,7 @@ import {
   Send,
   Sparkles,
   Trash2,
+  Wallet,
   XCircle,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -30,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsAdmin, useSession } from "@/hooks/useAuth";
+import { useSession, usePermissions } from "@/hooks/useAuth";
 import { brl, dateBR, statusLabel } from "@/lib/format";
 import { generateReport } from "@/lib/report";
 import { readReceipt } from "@/lib/ocr.functions";
@@ -71,7 +72,9 @@ const expenseSchema = z.object({
 function Detalhe() {
   const { id } = Route.useParams();
   const { user } = useSession();
-  const { data: isAdmin } = useIsAdmin(user?.id);
+  const { isAdmin, can } = usePermissions(user?.id);
+  const canReview = can("aprovar_prestacao");
+  const canTopup = can("adicionar_verba");
   const queryClient = useQueryClient();
 
   const [description, setDescription] = useState("");
@@ -83,6 +86,9 @@ function Detalhe() {
   const [saving, setSaving] = useState(false);
   const [comment, setComment] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [topupAmount, setTopupAmount] = useState("");
+  const [topupNote, setTopupNote] = useState("");
+  const [topupDate, setTopupDate] = useState(new Date().toISOString().slice(0, 10));
   const [reading, setReading] = useState(false);
   const [ocrFilled, setOcrFilled] = useState<string[]>([]);
   const runOcr = useServerFn(readReceipt);
@@ -128,6 +134,20 @@ function Detalhe() {
     },
   });
 
+  const topups = useQuery({
+    queryKey: ["topups", id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("advance_topups")
+        .select("id, amount, note, issued_at, created_by, created_at")
+        .eq("advance_id", id)
+        .order("issued_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const employee = useQuery({
     queryKey: ["profile", advance.data?.employee_id],
     enabled: !!advance.data?.employee_id,
@@ -142,7 +162,10 @@ function Detalhe() {
   });
 
   const list = expenses.data ?? [];
-  const liberado = Number(advance.data?.amount ?? 0);
+  const topupList = topups.data ?? [];
+  const totalTopups = topupList.reduce((s, t) => s + Number(t.amount), 0);
+  const valorInicial = Number(advance.data?.amount ?? 0);
+  const liberado = valorInicial + totalTopups;
   const gasto = list.reduce((s, e) => s + Number(e.amount), 0);
   const saldo = liberado - gasto;
   const isOwner = advance.data?.employee_id === user?.id;
@@ -314,6 +337,41 @@ function Detalhe() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const addTopup = useMutation({
+    mutationFn: async () => {
+      const value = Number(topupAmount);
+      if (!Number.isFinite(value) || value <= 0) throw new Error("Informe um valor válido");
+      const { error } = await supabase.from("advance_topups").insert({
+        advance_id: id,
+        amount: value,
+        note: topupNote.trim() ? topupNote.trim().slice(0, 300) : null,
+        issued_at: topupDate,
+        created_by: user!.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Verba adicionada ao adiantamento");
+      setTopupAmount("");
+      setTopupNote("");
+      queryClient.invalidateQueries({ queryKey: ["topups", id] });
+      queryClient.invalidateQueries({ queryKey: ["advances"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const removeTopup = useMutation({
+    mutationFn: async (topupId: string) => {
+      const { error } = await supabase.from("advance_topups").delete().eq("id", topupId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["topups", id] });
+      queryClient.invalidateQueries({ queryKey: ["advances"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const openReceipt = async (path: string, download?: boolean) => {
     const { data, error } = await supabase.storage
       .from("cupons")
@@ -339,6 +397,11 @@ function Detalhe() {
           receipt_path: e.receipt_path,
         })),
         employee.data?.full_name || employee.data?.email || "Funcionário",
+        topupList.map((t) => ({
+          amount: Number(t.amount),
+          note: t.note,
+          issued_at: t.issued_at,
+        })),
       );
     } catch {
       toast.error("Não foi possível gerar o PDF");
@@ -374,7 +437,11 @@ function Detalhe() {
       </p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-4">
-        <Card label="Valor disponibilizado" value={brl(liberado)} />
+        <Card
+          label="Valor disponibilizado"
+          value={brl(liberado)}
+          hint={totalTopups > 0 ? `inicial ${brl(valorInicial)} + verbas ${brl(totalTopups)}` : undefined}
+        />
         <Card label="Total de despesas" value={brl(gasto)} />
         <Card label="Saldo restante" value={brl(Math.max(saldo, 0))} accent />
         <Card
@@ -423,7 +490,7 @@ function Detalhe() {
         </p>
       ) : null}
 
-      {isAdmin && isReview ? (
+      {canReview && isReview ? (
         <div className="surface mt-6 space-y-4 p-6">
           <h2 className="font-semibold">Analisar prestação</h2>
           <div className="space-y-2">
@@ -455,7 +522,7 @@ function Detalhe() {
         </div>
       ) : null}
 
-      {isAdmin && !isReview ? (
+      {canReview && !isReview ? (
         <div className="mt-6 flex items-center gap-3">
           <Label className="text-xs uppercase">Situação</Label>
           <Select
@@ -485,6 +552,71 @@ function Detalhe() {
             </SelectContent>
           </Select>
         </div>
+      ) : null}
+
+      {canTopup && isOpen ? (
+        <div className="surface mt-8 space-y-4 p-6">
+          <h2 className="flex items-center gap-2 font-semibold">
+            <Wallet className="size-4 text-primary" /> Adicionar verba ao adiantamento
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label>Valor (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={topupAmount}
+                onChange={(e) => setTopupAmount(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Data</Label>
+              <Input
+                type="date"
+                value={topupDate}
+                onChange={(e) => setTopupDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Observação</Label>
+              <Input
+                value={topupNote}
+                onChange={(e) => setTopupNote(e.target.value)}
+                placeholder="Complemento de diária"
+              />
+            </div>
+          </div>
+          <Button onClick={() => addTopup.mutate()} disabled={addTopup.isPending}>
+            <Wallet className="mr-2 size-4" /> Liberar verba adicional
+          </Button>
+        </div>
+      ) : null}
+
+      {topupList.length > 0 ? (
+        <>
+          <h2 className="mt-10 text-xl font-semibold">Verbas adicionais</h2>
+          <div className="mt-4 space-y-3">
+            {topupList.map((t) => (
+              <div
+                key={t.id}
+                className="surface flex flex-wrap items-center justify-between gap-4 p-4"
+              >
+                <div>
+                  <p className="font-medium">{t.note || "Verba adicional"}</p>
+                  <p className="text-xs text-muted-foreground">{dateBR(t.issued_at)}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-display font-semibold">{brl(Number(t.amount))}</span>
+                  {canTopup && isOpen ? (
+                    <Button variant="ghost" size="icon" onClick={() => removeTopup.mutate(t.id)}>
+                      <Trash2 className="size-4" />
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       ) : null}
 
       {isOwner && isOpen ? (
@@ -644,7 +776,7 @@ function Detalhe() {
                 <span className="text-xs text-muted-foreground">Sem cupom</span>
               )}
               <span className="font-display font-semibold">{brl(Number(e.amount))}</span>
-              {(isAdmin || (e.user_id === user?.id && isOpen)) && (
+              {(isAdmin || canReview || (e.user_id === user?.id && isOpen)) && (
                 <Button variant="ghost" size="icon" onClick={() => remove.mutate(e.id)}>
                   <Trash2 className="size-4" />
                 </Button>
@@ -657,13 +789,24 @@ function Detalhe() {
   );
 }
 
-function Card({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function Card({
+  label,
+  value,
+  accent,
+  hint,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+  hint?: string;
+}) {
   return (
     <div className="surface p-5">
       <p className="text-xs tracking-wide text-muted-foreground uppercase">{label}</p>
       <p className={`mt-2 font-display text-xl font-bold ${accent ? "text-primary" : ""}`}>
         {value}
       </p>
+      {hint ? <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p> : null}
     </div>
   );
 }
