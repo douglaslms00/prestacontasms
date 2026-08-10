@@ -440,7 +440,9 @@ function Detalhe() {
         <Card
           label="Valor disponibilizado"
           value={brl(liberado)}
-          hint={totalTopups > 0 ? `inicial ${brl(valorInicial)} + verbas ${brl(totalTopups)}` : undefined}
+          {...(totalTopups > 0
+            ? { hint: `inicial ${brl(valorInicial)} + verbas ${brl(totalTopups)}` }
+            : {})}
         />
         <Card label="Total de despesas" value={brl(gasto)} />
         <Card label="Saldo restante" value={brl(Math.max(saldo, 0))} accent />
