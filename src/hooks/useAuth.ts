@@ -84,7 +84,7 @@ export function usePermissions(userId?: string) {
         supabase.from("user_roles").select("role").eq("user_id", userId!),
         supabase
           .from("user_cargos")
-          .select("cargo_id, cargos(name), cargo_permissions:cargo_id(permission)")
+          .select("cargo_id")
           .eq("user_id", userId!),
       ]);
       if (roles.error) throw roles.error;
