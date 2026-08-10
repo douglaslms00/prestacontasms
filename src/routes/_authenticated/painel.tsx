@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsAdmin, useSession } from "@/hooks/useAuth";
+import { useSession, usePermissions } from "@/hooks/useAuth";
 import { brl, dateBR, statusLabel } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/painel")({
@@ -50,6 +50,7 @@ type AdvanceRow = {
   status: string;
   employee_id: string;
   expenses: { amount: number }[];
+  advance_topups: { amount: number }[];
 };
 
 const advanceSchema = z.object({
@@ -62,7 +63,9 @@ const advanceSchema = z.object({
 
 function Painel() {
   const { user } = useSession();
-  const { data: isAdmin } = useIsAdmin(user?.id);
+  const { isAdmin, can } = usePermissions(user?.id);
+  const canCreate = can("criar_adiantamento");
+  const canManage = canCreate || can("ver_todos") || can("aprovar_prestacao");
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
 
@@ -72,7 +75,7 @@ function Painel() {
     queryFn: async (): Promise<AdvanceRow[]> => {
       const { data, error } = await supabase
         .from("advances")
-        .select("id, title, amount, issued_at, status, employee_id, expenses(amount)")
+        .select("id, title, amount, issued_at, status, employee_id, expenses(amount), advance_topups(amount)")
         .order("issued_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as AdvanceRow[];
@@ -81,7 +84,7 @@ function Painel() {
 
   const people = useQuery({
     queryKey: ["profiles"],
-    enabled: !!isAdmin,
+    enabled: !!canManage,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
@@ -98,7 +101,9 @@ function Painel() {
   };
 
   const rows = advances.data ?? [];
-  const totalLiberado = rows.reduce((s, a) => s + Number(a.amount), 0);
+  const liberadoDe = (a: AdvanceRow) =>
+    Number(a.amount) + (a.advance_topups ?? []).reduce((t, v) => t + Number(v.amount), 0);
+  const totalLiberado = rows.reduce((s, a) => s + liberadoDe(a), 0);
   const totalGasto = rows.reduce(
     (s, a) => s + a.expenses.reduce((t, e) => t + Number(e.amount), 0),
     0,
@@ -125,7 +130,7 @@ function Painel() {
   });
 
   return (
-    <AppShell subtitle={isAdmin ? "Perfil gestor" : "Perfil funcionário"}>
+    <AppShell subtitle={isAdmin || canManage ? "Perfil gestor" : "Perfil funcionário"}>
       <div className="grid gap-4 sm:grid-cols-3">
         <SummaryCard label="Total liberado" value={brl(totalLiberado)} />
         <SummaryCard label="Total gasto" value={brl(totalGasto)} />
@@ -136,7 +141,7 @@ function Painel() {
         />
       </div>
 
-      {isAdmin ? (
+      {canCreate ? (
         <div className="mt-10">
           {open ? (
             <NewAdvanceForm
@@ -161,7 +166,8 @@ function Painel() {
         ) : null}
         {rows.map((a) => {
           const gasto = a.expenses.reduce((t, e) => t + Number(e.amount), 0);
-          const saldo = Number(a.amount) - gasto;
+          const liberado = liberadoDe(a);
+          const saldo = liberado - gasto;
           return (
             <Link
               key={a.id}
@@ -181,7 +187,7 @@ function Painel() {
                 </p>
               </div>
               <div className="flex items-center gap-6 text-right">
-                <Figure label="Liberado" value={brl(Number(a.amount))} />
+                <Figure label="Liberado" value={brl(liberado)} />
                 <Figure label="Gasto" value={brl(gasto)} />
                 <Figure label="Saldo" value={brl(saldo)} accent />
                 <ArrowRight className="size-4 text-muted-foreground" />
