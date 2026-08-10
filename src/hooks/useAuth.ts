@@ -54,3 +54,58 @@ export function useProfile(userId?: string) {
     },
   });
 }
+
+export const PERMISSIONS = [
+  "criar_adiantamento",
+  "adicionar_verba",
+  "aprovar_prestacao",
+  "ver_todos",
+  "lancar_despesa",
+  "gerenciar_acessos",
+] as const;
+
+export type AppPermission = (typeof PERMISSIONS)[number];
+
+export const PERMISSION_LABELS: Record<AppPermission, string> = {
+  criar_adiantamento: "Criar adiantamentos",
+  adicionar_verba: "Adicionar verbas em adiantamentos",
+  aprovar_prestacao: "Aprovar ou rejeitar prestações",
+  ver_todos: "Ver todos os adiantamentos",
+  lancar_despesa: "Lançar e editar despesas",
+  gerenciar_acessos: "Gerenciar cargos e usuários",
+};
+
+export function usePermissions(userId?: string) {
+  const query = useQuery({
+    queryKey: ["permissions", userId],
+    enabled: !!userId,
+    queryFn: async (): Promise<{ isAdmin: boolean; permissions: AppPermission[] }> => {
+      const [roles, cargos] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", userId!),
+        supabase
+          .from("user_cargos")
+          .select("cargo_id")
+          .eq("user_id", userId!),
+      ]);
+      if (roles.error) throw roles.error;
+      const isAdmin = (roles.data ?? []).some((r) => r.role === "admin");
+
+      const cargoIds = (cargos.data ?? []).map((c) => c.cargo_id);
+      let permissions: AppPermission[] = [];
+      if (cargoIds.length > 0) {
+        const { data } = await supabase
+          .from("cargo_permissions")
+          .select("permission")
+          .in("cargo_id", cargoIds);
+        permissions = [...new Set((data ?? []).map((p) => p.permission as AppPermission))];
+      }
+      return { isAdmin, permissions };
+    },
+  });
+
+  const isAdmin = query.data?.isAdmin ?? false;
+  const permissions = query.data?.permissions ?? [];
+  const can = (p: AppPermission) => isAdmin || permissions.includes(p);
+
+  return { ...query, isAdmin, permissions, can };
+}

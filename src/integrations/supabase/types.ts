@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      advance_topups: {
+        Row: {
+          advance_id: string
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          issued_at: string
+          note: string | null
+        }
+        Insert: {
+          advance_id: string
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          issued_at?: string
+          note?: string | null
+        }
+        Update: {
+          advance_id?: string
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          issued_at?: string
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advance_topups_advance_id_fkey"
+            columns: ["advance_id"]
+            isOneToOne: false
+            referencedRelation: "advances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       advances: {
         Row: {
           amount: number
@@ -62,6 +100,59 @@ export type Database = {
           status?: Database["public"]["Enums"]["advance_status"]
           submitted_at?: string | null
           title?: string
+        }
+        Relationships: []
+      }
+      cargo_permissions: {
+        Row: {
+          cargo_id: string
+          created_at: string
+          id: string
+          permission: Database["public"]["Enums"]["app_permission"]
+        }
+        Insert: {
+          cargo_id: string
+          created_at?: string
+          id?: string
+          permission: Database["public"]["Enums"]["app_permission"]
+        }
+        Update: {
+          cargo_id?: string
+          created_at?: string
+          id?: string
+          permission?: Database["public"]["Enums"]["app_permission"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cargo_permissions_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "cargos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cargos: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -130,6 +221,35 @@ export type Database = {
         }
         Relationships: []
       }
+      user_cargos: {
+        Row: {
+          cargo_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          cargo_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          cargo_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_cargos_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "cargos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -153,6 +273,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_permission: {
+        Args: {
+          _permission: Database["public"]["Enums"]["app_permission"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -163,6 +290,13 @@ export type Database = {
     }
     Enums: {
       advance_status: "aberto" | "em_analise" | "fechado"
+      app_permission:
+        | "criar_adiantamento"
+        | "adicionar_verba"
+        | "aprovar_prestacao"
+        | "ver_todos"
+        | "lancar_despesa"
+        | "gerenciar_acessos"
       app_role: "admin" | "funcionario"
     }
     CompositeTypes: {
@@ -292,6 +426,14 @@ export const Constants = {
   public: {
     Enums: {
       advance_status: ["aberto", "em_analise", "fechado"],
+      app_permission: [
+        "criar_adiantamento",
+        "adicionar_verba",
+        "aprovar_prestacao",
+        "ver_todos",
+        "lancar_despesa",
+        "gerenciar_acessos",
+      ],
       app_role: ["admin", "funcionario"],
     },
   },
