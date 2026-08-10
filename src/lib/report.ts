@@ -43,10 +43,13 @@ async function loadImage(path: string) {
   return { dataUrl, width: img.naturalWidth, height: img.naturalHeight };
 }
 
+export type ReportTopup = { amount: number; note: string | null; issued_at: string };
+
 export async function generateReport(
   advance: ReportAdvance,
   expenses: ReportExpense[],
   employeeName: string,
+  topups: ReportTopup[] = [],
 ) {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -54,7 +57,9 @@ export async function generateReport(
   const margin = 40;
 
   const gasto = expenses.reduce((s, e) => s + Number(e.amount), 0);
-  const saldo = Number(advance.amount) - gasto;
+  const totalTopups = topups.reduce((s, t) => s + Number(t.amount), 0);
+  const liberado = Number(advance.amount) + totalTopups;
+  const saldo = liberado - gasto;
 
   doc.setFontSize(18);
   doc.text("Prestação de Contas", margin, 56);
@@ -78,7 +83,9 @@ export async function generateReport(
     startY: advance.description ? 136 : 120,
     head: [["Resumo", "Valor"]],
     body: [
-      ["Valor disponibilizado", brl(Number(advance.amount))],
+      ["Valor inicial liberado", brl(Number(advance.amount))],
+      ["Verbas adicionais", brl(totalTopups)],
+      ["Total disponibilizado", brl(liberado)],
       ["Total de despesas", brl(gasto)],
       ["Saldo restante", brl(Math.max(saldo, 0))],
       [saldo >= 0 ? "Valor a devolver" : "Valor a reembolsar", brl(Math.abs(saldo))],
@@ -87,6 +94,17 @@ export async function generateReport(
     headStyles: { fillColor: [16, 82, 72] },
     margin: { left: margin, right: margin },
   });
+
+  if (topups.length > 0) {
+    autoTable(doc, {
+      startY: (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 24,
+      head: [["Data", "Verba adicional", "Valor"]],
+      body: topups.map((t) => [dateBR(t.issued_at), t.note ?? "—", brl(Number(t.amount))]),
+      theme: "grid",
+      headStyles: { fillColor: [16, 82, 72] },
+      margin: { left: margin, right: margin },
+    });
+  }
 
   autoTable(doc, {
     startY: (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 24,
