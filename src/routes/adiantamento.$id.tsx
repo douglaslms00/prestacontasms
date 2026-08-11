@@ -31,7 +31,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession, usePermissions } from "@/hooks/useAuth";
 import { brl, dateBR, statusLabel } from "@/lib/format";
 import { generateReport } from "@/lib/report";
 import { readReceipt } from "@/lib/ocr.functions";
@@ -71,10 +70,8 @@ const expenseSchema = z.object({
 
 function Detalhe() {
   const { id } = Route.useParams();
-  const { user } = useSession();
-  const { isAdmin, can } = usePermissions(user?.id);
-  const canReview = can("aprovar_prestacao");
-  const canTopup = can("adicionar_verba");
+  const canReview = true;
+  const canTopup = true;
   const queryClient = useQueryClient();
 
   const [description, setDescription] = useState("");
@@ -106,7 +103,6 @@ function Detalhe() {
 
   const advance = useQuery({
     queryKey: ["advance", id],
-    enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("advances")
@@ -122,7 +118,6 @@ function Detalhe() {
 
   const expenses = useQuery({
     queryKey: ["expenses", id],
-    enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("expenses")
@@ -136,7 +131,6 @@ function Detalhe() {
 
   const topups = useQuery({
     queryKey: ["topups", id],
-    enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("advance_topups")
@@ -168,7 +162,7 @@ function Detalhe() {
   const liberado = valorInicial + totalTopups;
   const gasto = list.reduce((s, e) => s + Number(e.amount), 0);
   const saldo = liberado - gasto;
-  const isOwner = advance.data?.employee_id === user?.id;
+  const isOwner = true;
   const isOpen = advance.data?.status === "aberto";
   const isReview = advance.data?.status === "em_analise";
   const isClosed = advance.data?.status === "fechado";
@@ -254,7 +248,7 @@ function Detalhe() {
       let receiptPath: string | null = null;
       if (file) {
         const ext = file.name.split(".").pop() ?? "jpg";
-        const path = `${user!.id}/${id}/${crypto.randomUUID()}.${ext}`;
+        const path = `publico/${id}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from("cupons")
           .upload(path, file, { contentType: file.type });
@@ -263,7 +257,6 @@ function Detalhe() {
       }
       const { error } = await supabase.from("expenses").insert({
         advance_id: id,
-        user_id: user!.id,
         description: parsed.data.description,
         category: parsed.data.category,
         amount: parsed.data.amount,
@@ -323,7 +316,6 @@ function Detalhe() {
           decision,
           review_comment: comment.trim() || null,
           reviewed_at: new Date().toISOString(),
-          reviewed_by: user!.id,
         })
         .eq("id", id);
       if (error) throw error;
@@ -346,7 +338,6 @@ function Detalhe() {
         amount: value,
         note: topupNote.trim() ? topupNote.trim().slice(0, 300) : null,
         issued_at: topupDate,
-        created_by: user!.id,
       });
       if (error) throw error;
     },
@@ -778,7 +769,7 @@ function Detalhe() {
                 <span className="text-xs text-muted-foreground">Sem cupom</span>
               )}
               <span className="font-display font-semibold">{brl(Number(e.amount))}</span>
-              {(isAdmin || canReview || (e.user_id === user?.id && isOpen)) && (
+              {!isClosed && (
                 <Button variant="ghost" size="icon" onClick={() => remove.mutate(e.id)}>
                   <Trash2 className="size-4" />
                 </Button>

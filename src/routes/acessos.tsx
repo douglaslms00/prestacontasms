@@ -17,13 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  PERMISSIONS,
-  PERMISSION_LABELS,
-  useSession,
-  usePermissions,
-  type AppPermission,
-} from "@/hooks/useAuth";
+import { PERMISSIONS, PERMISSION_LABELS, type AppPermission } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/acessos")({
   head: () => ({
@@ -49,10 +43,7 @@ export const Route = createFileRoute("/acessos")({
 type Cargo = { id: string; name: string; description: string };
 
 function Acessos() {
-  const { user } = useSession();
-  const { can, isLoading } = usePermissions(user?.id);
   const queryClient = useQueryClient();
-  const allowed = can("gerenciar_acessos");
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -61,7 +52,6 @@ function Acessos() {
 
   const cargos = useQuery({
     queryKey: ["cargos"],
-    enabled: !!user,
     queryFn: async (): Promise<Cargo[]> => {
       const { data, error } = await supabase
         .from("cargos")
@@ -74,7 +64,6 @@ function Acessos() {
 
   const perms = useQuery({
     queryKey: ["cargo-permissions"],
-    enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("cargo_permissions")
@@ -86,7 +75,6 @@ function Acessos() {
 
   const people = useQuery({
     queryKey: ["profiles"],
-    enabled: allowed,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
@@ -99,7 +87,6 @@ function Acessos() {
 
   const assignments = useQuery({
     queryKey: ["user-cargos"],
-    enabled: allowed,
     queryFn: async () => {
       const { data, error } = await supabase.from("user_cargos").select("id, user_id, cargo_id");
       if (error) throw error;
@@ -188,27 +175,6 @@ function Acessos() {
     onSuccess: invalidate,
     onError: (e: Error) => toast.error(e.message),
   });
-
-  if (isLoading) {
-    return (
-      <AppShell subtitle="Cargos e permissões">
-        <p className="text-sm text-muted-foreground">Carregando…</p>
-      </AppShell>
-    );
-  }
-
-  if (!allowed) {
-    return (
-      <AppShell subtitle="Cargos e permissões">
-        <div className="surface p-6">
-          <h1 className="text-xl font-semibold">Acesso restrito</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Você não tem permissão para gerenciar cargos e usuários.
-          </p>
-        </div>
-      </AppShell>
-    );
-  }
 
   const hasPerm = (cargoId: string, permission: AppPermission) =>
     (perms.data ?? []).some((p) => p.cargo_id === cargoId && p.permission === permission);
