@@ -37,7 +37,7 @@ import { generateReport } from "@/lib/report";
 import { readReceipt } from "@/lib/ocr.functions";
 
 
-export const Route = createFileRoute("/_authenticated/adiantamento/$id")({
+export const Route = createFileRoute("/adiantamento/$id")({
   head: () => ({
     meta: [
       { title: "Detalhe do adiantamento | Prestação de Contas" },

@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePermissions } from "@/hooks/useAuth";
 import { brl, dateBR, statusLabel } from "@/lib/format";
 
-export const Route = createFileRoute("/_authenticated/painel")({
+export const Route = createFileRoute("/painel")({
   head: () => ({
     meta: [
       { title: "Painel de adiantamentos | Prestação de Contas" },

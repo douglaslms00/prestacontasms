@@ -25,7 +25,7 @@ import {
   type AppPermission,
 } from "@/hooks/useAuth";
 
-export const Route = createFileRoute("/_authenticated/acessos")({
+export const Route = createFileRoute("/acessos")({
   head: () => ({
     meta: [
       { title: "Cargos e permissões | Prestação de Contas" },
