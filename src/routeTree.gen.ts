@@ -10,85 +10,63 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedAcessosRouteImport } from './routes/_authenticated/acessos'
-import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
-import { Route as AuthenticatedAdiantamentoIdRouteImport } from './routes/_authenticated/adiantamento.$id'
+import { Route as AcessosRouteImport } from './routes/acessos'
+import { Route as PainelRouteImport } from './routes/painel'
+import { Route as AdiantamentoIdRouteImport } from './routes/adiantamento.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedAcessosRoute = AuthenticatedAcessosRouteImport.update({
+const AcessosRoute = AcessosRouteImport.update({
   id: '/acessos',
   path: '/acessos',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
+const PainelRoute = PainelRouteImport.update({
   id: '/painel',
   path: '/painel',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdiantamentoIdRoute =
-  AuthenticatedAdiantamentoIdRouteImport.update({
-    id: '/adiantamento/$id',
-    path: '/adiantamento/$id',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
+const AdiantamentoIdRoute = AdiantamentoIdRouteImport.update({
+  id: '/adiantamento/$id',
+  path: '/adiantamento/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
-  '/acessos': typeof AuthenticatedAcessosRoute
-  '/painel': typeof AuthenticatedPainelRoute
-  '/adiantamento/$id': typeof AuthenticatedAdiantamentoIdRoute
+  '/acessos': typeof AcessosRoute
+  '/painel': typeof PainelRoute
+  '/adiantamento/$id': typeof AdiantamentoIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
-  '/acessos': typeof AuthenticatedAcessosRoute
-  '/painel': typeof AuthenticatedPainelRoute
-  '/adiantamento/$id': typeof AuthenticatedAdiantamentoIdRoute
+  '/acessos': typeof AcessosRoute
+  '/painel': typeof PainelRoute
+  '/adiantamento/$id': typeof AdiantamentoIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/auth': typeof AuthRoute
-  '/_authenticated/acessos': typeof AuthenticatedAcessosRoute
-  '/_authenticated/painel': typeof AuthenticatedPainelRoute
-  '/_authenticated/adiantamento/$id': typeof AuthenticatedAdiantamentoIdRoute
+  '/acessos': typeof AcessosRoute
+  '/painel': typeof PainelRoute
+  '/adiantamento/$id': typeof AdiantamentoIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/acessos' | '/painel' | '/adiantamento/$id'
+  fullPaths: '/' | '/acessos' | '/painel' | '/adiantamento/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/acessos' | '/painel' | '/adiantamento/$id'
-  id:
-    | '__root__'
-    | '/'
-    | '/_authenticated'
-    | '/auth'
-    | '/_authenticated/acessos'
-    | '/_authenticated/painel'
-    | '/_authenticated/adiantamento/$id'
+  to: '/' | '/acessos' | '/painel' | '/adiantamento/$id'
+  id: '__root__' | '/' | '/acessos' | '/painel' | '/adiantamento/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AuthRoute: typeof AuthRoute
+  AcessosRoute: typeof AcessosRoute
+  PainelRoute: typeof PainelRoute
+  AdiantamentoIdRoute: typeof AdiantamentoIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -100,74 +78,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/acessos': {
-      id: '/_authenticated/acessos'
+    '/acessos': {
+      id: '/acessos'
       path: '/acessos'
       fullPath: '/acessos'
-      preLoaderRoute: typeof AuthenticatedAcessosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      preLoaderRoute: typeof AcessosRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/painel': {
-      id: '/_authenticated/painel'
+    '/painel': {
+      id: '/painel'
       path: '/painel'
       fullPath: '/painel'
-      preLoaderRoute: typeof AuthenticatedPainelRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      preLoaderRoute: typeof PainelRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/adiantamento/$id': {
-      id: '/_authenticated/adiantamento/$id'
+    '/adiantamento/$id': {
+      id: '/adiantamento/$id'
       path: '/adiantamento/$id'
       fullPath: '/adiantamento/$id'
-      preLoaderRoute: typeof AuthenticatedAdiantamentoIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      preLoaderRoute: typeof AdiantamentoIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
 
-interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAcessosRoute: typeof AuthenticatedAcessosRoute
-  AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
-  AuthenticatedAdiantamentoIdRoute: typeof AuthenticatedAdiantamentoIdRoute
-}
-
-const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAcessosRoute: AuthenticatedAcessosRoute,
-  AuthenticatedPainelRoute: AuthenticatedPainelRoute,
-  AuthenticatedAdiantamentoIdRoute: AuthenticatedAdiantamentoIdRoute,
-}
-
-const AuthenticatedRouteRouteWithChildren =
-  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AuthRoute: AuthRoute,
+  AcessosRoute: AcessosRoute,
+  PainelRoute: PainelRoute,
+  AdiantamentoIdRoute: AdiantamentoIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
