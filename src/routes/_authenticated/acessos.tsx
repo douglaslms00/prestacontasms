@@ -224,7 +224,7 @@ function Acessos() {
     );
   }
 
-  if (!allowed) {
+  if (!allowed && !canIntegrar) {
     return (
       <AppShell subtitle="Cargos e permissões">
         <div className="surface p-6">
@@ -252,6 +252,7 @@ function Acessos() {
         acesso total.
       </p>
 
+      {allowed ? (
       <div className="surface mt-6 space-y-4 p-6">
         <h2 className="font-semibold">Novo cargo</h2>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -276,7 +277,10 @@ function Acessos() {
           <Plus className="mr-2 size-4" /> Criar cargo
         </Button>
       </div>
+      ) : null}
 
+      {allowed ? (
+      <>
       <h2 className="mt-10 text-xl font-semibold">Permissões por cargo</h2>
       <div className="mt-4 space-y-4">
         {(cargos.data ?? []).length === 0 ? (
@@ -311,6 +315,8 @@ function Acessos() {
           </div>
         ))}
       </div>
+      </>
+      ) : null}
 
       {canIntegrar ? (
         <>
@@ -352,6 +358,8 @@ function Acessos() {
         </>
       ) : null}
 
+      {allowed ? (
+      <>
       <h2 className="mt-10 text-xl font-semibold">Usuários</h2>
       <div className="surface mt-4 space-y-4 p-5">
         <div className="grid gap-3 sm:grid-cols-3">
@@ -417,6 +425,8 @@ function Acessos() {
           );
         })}
       </div>
+      </>
+      ) : null}
     </AppShell>
   );
 }
