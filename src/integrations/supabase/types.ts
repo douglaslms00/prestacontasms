@@ -297,6 +297,7 @@ export type Database = {
         | "ver_todos"
         | "lancar_despesa"
         | "gerenciar_acessos"
+        | "integrar_obras"
       app_role: "admin" | "funcionario"
     }
     CompositeTypes: {
@@ -433,6 +434,7 @@ export const Constants = {
         "ver_todos",
         "lancar_despesa",
         "gerenciar_acessos",
+        "integrar_obras",
       ],
       app_role: ["admin", "funcionario"],
     },
