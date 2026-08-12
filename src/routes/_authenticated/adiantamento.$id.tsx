@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Download,
   FileText,
+  HardHat,
   Lock,
   Paperclip,
   Send,
