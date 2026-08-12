@@ -321,7 +321,7 @@ function Detalhe() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("obra_sync_logs")
-        .select("id, status, message, created_at")
+        .select("id, success, message, created_at")
         .eq("advance_id", id)
         .order("created_at", { ascending: false })
         .limit(1);
@@ -505,7 +505,7 @@ function Detalhe() {
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {syncLog.data
-                ? `Último envio à Gestão de Obras: ${syncLog.data.status} — ${syncLog.data.message ?? ""}`
+                ? `Último envio à Gestão de Obras: ${syncLog.data.success ? "sucesso" : "falha"} — ${syncLog.data.message ?? ""}`
                 : "Prestação ainda não enviada ao sistema de obras."}
             </p>
           </div>
