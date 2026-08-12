@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Shield, Trash2, UserPlus } from "lucide-react";
+import { HardHat, Plus, RefreshCw, Shield, Trash2, UserPlus } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { syncObras } from "@/lib/obras.functions";
+import { OBRAS_APP_URL } from "@/lib/obras";
 import {
   PERMISSIONS,
   PERMISSION_LABELS,
@@ -53,6 +56,8 @@ function Acessos() {
   const { can, isLoading } = usePermissions(user?.id);
   const queryClient = useQueryClient();
   const allowed = can("gerenciar_acessos");
+  const canIntegrar = can("integrar_obras");
+  const runSync = useServerFn(syncObras);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -105,6 +110,28 @@ function Acessos() {
       if (error) throw error;
       return data ?? [];
     },
+  });
+
+  const obras = useQuery({
+    queryKey: ["obras"],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("obras")
+        .select("id, nome, codigo, cliente, status")
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const sync = useMutation({
+    mutationFn: async () => runSync({}),
+    onSuccess: (result) => {
+      toast.success(result.message);
+      queryClient.invalidateQueries({ queryKey: ["obras"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const invalidate = () => {
@@ -284,6 +311,46 @@ function Acessos() {
           </div>
         ))}
       </div>
+
+      {canIntegrar ? (
+        <>
+          <h2 className="mt-10 flex items-center gap-2 text-xl font-semibold">
+            <HardHat className="size-5 text-primary" /> Integração com Gestão de Obras
+          </h2>
+          <div className="surface mt-4 space-y-4 p-5">
+            <p className="text-sm text-muted-foreground">
+              Importe as obras de{" "}
+              <a
+                className="underline"
+                href={OBRAS_APP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {OBRAS_APP_URL.replace("https://", "")}
+              </a>{" "}
+              para vincular adiantamentos a uma obra e enviar a prestação aprovada de volta.
+            </p>
+            <Button onClick={() => sync.mutate()} disabled={sync.isPending}>
+              <RefreshCw className="mr-2 size-4" />
+              {sync.isPending ? "Sincronizando…" : "Sincronizar obras"}
+            </Button>
+            <div className="space-y-2">
+              {(obras.data ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma obra sincronizada ainda.</p>
+              ) : null}
+              {(obras.data ?? []).map((o) => (
+                <div key={o.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span>{[o.codigo, o.nome].filter(Boolean).join(" · ")}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {o.cliente ? `${o.cliente} · ` : ""}
+                    {o.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : null}
 
       <h2 className="mt-10 text-xl font-semibold">Usuários</h2>
       <div className="surface mt-4 space-y-4 p-5">
