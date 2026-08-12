@@ -52,10 +52,11 @@ export const syncObras = createServerFn({ method: "POST" })
     });
     if (!allowed) throw new Error("Sem permissão para sincronizar obras");
 
+    const key = apiKey();
     let response: Response;
     try {
       response = await fetch(`${baseUrl()}/api/public/obras`, {
-        headers: { "x-api-key": apiKey(), Accept: "application/json" },
+        headers: { "x-api-key": key, Accept: "application/json" },
       });
     } catch {
       throw new Error("Não foi possível contatar o sistema de obras.");
