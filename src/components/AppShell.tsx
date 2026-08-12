@@ -1,9 +1,24 @@
 import { ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
-import { Receipt, Shield } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { LogOut, Receipt, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useSession, usePermissions } from "@/hooks/useAuth";
 
 export function AppShell({ children, subtitle }: { children: ReactNode; subtitle?: string }) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user } = useSession();
+  const { can } = usePermissions(user?.id);
+
+  const signOut = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  };
+
   return (
     <div className="min-h-screen bg-secondary/50">
       <header className="bg-gradient-brand text-primary-foreground">
@@ -16,10 +31,15 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
             </div>
           </Link>
           <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" asChild>
-              <Link to="/acessos">
-                <Shield className="mr-2 size-4" /> Cadastros
-              </Link>
+            {can("gerenciar_acessos") ? (
+              <Button variant="secondary" size="sm" asChild>
+                <Link to="/acessos">
+                  <Shield className="mr-2 size-4" /> Acessos
+                </Link>
+              </Button>
+            ) : null}
+            <Button variant="secondary" size="sm" onClick={signOut}>
+              <LogOut className="mr-2 size-4" /> Sair
             </Button>
           </div>
         </div>
@@ -28,3 +48,4 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
     </div>
   );
 }
+

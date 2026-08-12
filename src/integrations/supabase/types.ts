@@ -166,7 +166,7 @@ export type Database = {
           id: string
           receipt_path: string | null
           spent_at: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           advance_id: string
@@ -177,7 +177,7 @@ export type Database = {
           id?: string
           receipt_path?: string | null
           spent_at?: string
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           advance_id?: string
@@ -188,7 +188,7 @@ export type Database = {
           id?: string
           receipt_path?: string | null
           spent_at?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -211,7 +211,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           full_name?: string
-          id?: string
+          id: string
         }
         Update: {
           created_at?: string

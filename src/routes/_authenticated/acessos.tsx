@@ -17,9 +17,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { PERMISSIONS, PERMISSION_LABELS, type AppPermission } from "@/hooks/useAuth";
+import {
+  PERMISSIONS,
+  PERMISSION_LABELS,
+  useSession,
+  usePermissions,
+  type AppPermission,
+} from "@/hooks/useAuth";
 
-export const Route = createFileRoute("/acessos")({
+export const Route = createFileRoute("/_authenticated/acessos")({
   head: () => ({
     meta: [
       { title: "Cargos e permissões | Prestação de Contas" },
@@ -43,17 +49,19 @@ export const Route = createFileRoute("/acessos")({
 type Cargo = { id: string; name: string; description: string };
 
 function Acessos() {
+  const { user } = useSession();
+  const { can, isLoading } = usePermissions(user?.id);
   const queryClient = useQueryClient();
+  const allowed = can("gerenciar_acessos");
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [pickUser, setPickUser] = useState("");
-  const [personName, setPersonName] = useState("");
-  const [personEmail, setPersonEmail] = useState("");
   const [pickCargo, setPickCargo] = useState("");
 
   const cargos = useQuery({
     queryKey: ["cargos"],
+    enabled: !!user,
     queryFn: async (): Promise<Cargo[]> => {
       const { data, error } = await supabase
         .from("cargos")
@@ -66,6 +74,7 @@ function Acessos() {
 
   const perms = useQuery({
     queryKey: ["cargo-permissions"],
+    enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("cargo_permissions")
@@ -77,6 +86,7 @@ function Acessos() {
 
   const people = useQuery({
     queryKey: ["profiles"],
+    enabled: allowed,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
@@ -89,6 +99,7 @@ function Acessos() {
 
   const assignments = useQuery({
     queryKey: ["user-cargos"],
+    enabled: allowed,
     queryFn: async () => {
       const { data, error } = await supabase.from("user_cargos").select("id, user_id, cargo_id");
       if (error) throw error;
@@ -178,36 +189,26 @@ function Acessos() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const createPerson = useMutation({
-    mutationFn: async () => {
-      const trimmed = personName.trim();
-      if (trimmed.length < 2) throw new Error("Informe o nome do funcionário");
-      const { error } = await supabase.from("profiles").insert({
-        full_name: trimmed.slice(0, 120),
-        email: personEmail.trim() ? personEmail.trim().slice(0, 255) : null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Funcionário cadastrado");
-      setPersonName("");
-      setPersonEmail("");
-      queryClient.invalidateQueries({ queryKey: ["profiles"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  if (isLoading) {
+    return (
+      <AppShell subtitle="Cargos e permissões">
+        <p className="text-sm text-muted-foreground">Carregando…</p>
+      </AppShell>
+    );
+  }
 
-  const removePerson = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("profiles").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Funcionário removido");
-      queryClient.invalidateQueries({ queryKey: ["profiles"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  if (!allowed) {
+    return (
+      <AppShell subtitle="Cargos e permissões">
+        <div className="surface p-6">
+          <h1 className="text-xl font-semibold">Acesso restrito</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Você não tem permissão para gerenciar cargos e usuários.
+          </p>
+        </div>
+      </AppShell>
+    );
+  }
 
   const hasPerm = (cargoId: string, permission: AppPermission) =>
     (perms.data ?? []).some((p) => p.cargo_id === cargoId && p.permission === permission);
@@ -220,8 +221,8 @@ function Acessos() {
         <Shield className="size-5 text-primary" /> Cargos e permissões
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Cadastre funcionários, crie cargos e organize as atribuições. O sistema está com acesso
-        livre: qualquer pessoa com o link pode usar todas as funções.
+        Crie cargos, marque o que cada um pode fazer e atribua aos usuários. Administradores têm
+        acesso total.
       </p>
 
       <div className="surface mt-6 space-y-4 p-6">
@@ -284,34 +285,7 @@ function Acessos() {
         ))}
       </div>
 
-      <h2 className="mt-10 text-xl font-semibold">Funcionários</h2>
-      <div className="surface mt-4 space-y-4 p-5">
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label>Nome</Label>
-            <Input
-              value={personName}
-              onChange={(e) => setPersonName(e.target.value)}
-              placeholder="Maria Souza"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>E-mail (opcional)</Label>
-            <Input
-              value={personEmail}
-              onChange={(e) => setPersonEmail(e.target.value)}
-              placeholder="maria@empresa.com"
-            />
-          </div>
-          <div className="flex items-end">
-            <Button onClick={() => createPerson.mutate()} disabled={createPerson.isPending}>
-              <UserPlus className="mr-2 size-4" /> Cadastrar funcionário
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <h2 className="mt-10 text-xl font-semibold">Cargos dos funcionários</h2>
+      <h2 className="mt-10 text-xl font-semibold">Usuários</h2>
       <div className="surface mt-4 space-y-4 p-5">
         <div className="grid gap-3 sm:grid-cols-3">
           <Select value={pickUser} onValueChange={setPickUser}>
@@ -360,9 +334,6 @@ function Acessos() {
                 {mine.length === 0 ? (
                   <span className="text-xs text-muted-foreground">Sem cargo</span>
                 ) : null}
-                <Button variant="ghost" size="sm" onClick={() => removePerson.mutate(p.id)}>
-                  <Trash2 className="size-4" />
-                </Button>
                 {mine.map((a) => (
                   <Badge
                     key={a.id}

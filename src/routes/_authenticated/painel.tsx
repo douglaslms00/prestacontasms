@@ -18,9 +18,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { useSession, usePermissions } from "@/hooks/useAuth";
 import { brl, dateBR, statusLabel } from "@/lib/format";
 
-export const Route = createFileRoute("/painel")({
+export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
     meta: [
       { title: "Painel de adiantamentos | Prestação de Contas" },
@@ -61,11 +62,16 @@ const advanceSchema = z.object({
 });
 
 function Painel() {
+  const { user } = useSession();
+  const { isAdmin, can } = usePermissions(user?.id);
+  const canCreate = can("criar_adiantamento");
+  const canManage = canCreate || can("ver_todos") || can("aprovar_prestacao");
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
 
   const advances = useQuery({
     queryKey: ["advances"],
+    enabled: !!user,
     queryFn: async (): Promise<AdvanceRow[]> => {
       const { data, error } = await supabase
         .from("advances")
@@ -78,6 +84,7 @@ function Painel() {
 
   const people = useQuery({
     queryKey: ["profiles"],
+    enabled: !!canManage,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
@@ -90,7 +97,7 @@ function Painel() {
 
   const nameOf = (id: string) => {
     const p = people.data?.find((x) => x.id === id);
-    return p?.full_name || p?.email || "Funcionário";
+    return p?.full_name || p?.email || (id === user?.id ? "Você" : "Funcionário");
   };
 
   const rows = advances.data ?? [];
@@ -110,6 +117,7 @@ function Painel() {
         amount: form.amount,
         employee_id: form.employee_id,
         issued_at: form.issued_at,
+        created_by: user!.id,
       });
       if (error) throw error;
     },
@@ -122,7 +130,7 @@ function Painel() {
   });
 
   return (
-    <AppShell subtitle="Acesso livre">
+    <AppShell subtitle={isAdmin || canManage ? "Perfil gestor" : "Perfil funcionário"}>
       <div className="grid gap-4 sm:grid-cols-3">
         <SummaryCard label="Total liberado" value={brl(totalLiberado)} />
         <SummaryCard label="Total gasto" value={brl(totalGasto)} />
@@ -133,7 +141,8 @@ function Painel() {
         />
       </div>
 
-      <div className="mt-10">
+      {canCreate ? (
+        <div className="mt-10">
           {open ? (
             <NewAdvanceForm
               people={people.data ?? []}
@@ -146,7 +155,8 @@ function Painel() {
               <Plus className="mr-2 size-4" /> Novo adiantamento
             </Button>
           )}
-      </div>
+        </div>
+      ) : null}
 
       <h2 className="mt-10 text-xl font-semibold">Adiantamentos</h2>
       <div className="mt-4 space-y-3">

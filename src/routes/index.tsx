@@ -59,8 +59,8 @@ function Landing() {
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <Button asChild size="lg" variant="secondary">
-              <Link to="/painel">
-                Abrir o painel <ArrowRight className="ml-2 size-4" />
+              <Link to="/auth">
+                Entrar no sistema <ArrowRight className="ml-2 size-4" />
               </Link>
             </Button>
           </div>
