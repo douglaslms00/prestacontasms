@@ -1,10 +1,11 @@
 import { ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, Receipt, Shield } from "lucide-react";
+import { HardHat, LogOut, Receipt, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePermissions } from "@/hooks/useAuth";
+import { OBRAS_APP_URL } from "@/lib/obras.functions";
 
 export function AppShell({ children, subtitle }: { children: ReactNode; subtitle?: string }) {
   const navigate = useNavigate();
