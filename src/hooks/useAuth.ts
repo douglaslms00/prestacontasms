@@ -62,6 +62,7 @@ export const PERMISSIONS = [
   "ver_todos",
   "lancar_despesa",
   "gerenciar_acessos",
+  "integrar_obras",
 ] as const;
 
 export type AppPermission = (typeof PERMISSIONS)[number];
@@ -73,6 +74,7 @@ export const PERMISSION_LABELS: Record<AppPermission, string> = {
   ver_todos: "Ver todos os adiantamentos",
   lancar_despesa: "Lançar e editar despesas",
   gerenciar_acessos: "Gerenciar cargos e usuários",
+  integrar_obras: "Acessar e integrar com o sistema de obras",
 };
 
 export function usePermissions(userId?: string) {

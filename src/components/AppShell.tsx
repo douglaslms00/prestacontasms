@@ -1,10 +1,11 @@
 import { ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, Receipt, Shield } from "lucide-react";
+import { HardHat, LogOut, Receipt, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePermissions } from "@/hooks/useAuth";
+import { OBRAS_APP_URL } from "@/lib/obras";
 
 export function AppShell({ children, subtitle }: { children: ReactNode; subtitle?: string }) {
   const navigate = useNavigate();
@@ -31,6 +32,13 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
             </div>
           </Link>
           <div className="flex items-center gap-2">
+            {can("integrar_obras") ? (
+              <Button variant="secondary" size="sm" asChild>
+                <a href={OBRAS_APP_URL} target="_blank" rel="noopener noreferrer">
+                  <HardHat className="mr-2 size-4" /> Gestão de Obras
+                </a>
+              </Button>
+            ) : null}
             {can("gerenciar_acessos") ? (
               <Button variant="secondary" size="sm" asChild>
                 <Link to="/acessos">

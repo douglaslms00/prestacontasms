@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Download,
   FileText,
+  HardHat,
   Lock,
   Paperclip,
   Send,
@@ -35,6 +36,7 @@ import { useSession, usePermissions } from "@/hooks/useAuth";
 import { brl, dateBR, statusLabel } from "@/lib/format";
 import { generateReport } from "@/lib/report";
 import { readReceipt } from "@/lib/ocr.functions";
+import { pushPrestacao } from "@/lib/obras.functions";
 
 
 export const Route = createFileRoute("/_authenticated/adiantamento/$id")({
@@ -92,6 +94,7 @@ function Detalhe() {
   const [reading, setReading] = useState(false);
   const [ocrFilled, setOcrFilled] = useState<string[]>([]);
   const runOcr = useServerFn(readReceipt);
+  const runPush = useServerFn(pushPrestacao);
 
 
   useEffect(() => {
@@ -111,7 +114,7 @@ function Detalhe() {
       const { data, error } = await supabase
         .from("advances")
         .select(
-          "id, title, description, amount, issued_at, status, employee_id, submitted_at, reviewed_at, review_comment, decision",
+          "id, title, description, amount, issued_at, status, employee_id, obra_id, submitted_at, reviewed_at, review_comment, decision",
         )
         .eq("id", id)
         .maybeSingle();
@@ -298,6 +301,45 @@ function Detalhe() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const obra = useQuery({
+    queryKey: ["obra", advance.data?.obra_id],
+    enabled: !!advance.data?.obra_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("obras")
+        .select("id, nome, codigo")
+        .eq("id", advance.data!.obra_id!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const syncLog = useQuery({
+    queryKey: ["obra_sync_logs", id],
+    enabled: !!user && !!advance.data?.obra_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("obra_sync_logs")
+        .select("id, success, message, created_at")
+        .eq("advance_id", id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return data?.[0] ?? null;
+    },
+  });
+
+  const push = useMutation({
+    mutationFn: async () => runPush({ data: { advanceId: id } }),
+    onSuccess: (result) => {
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message);
+      queryClient.invalidateQueries({ queryKey: ["obra_sync_logs", id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const submitReport = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
@@ -328,9 +370,10 @@ function Detalhe() {
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, decision) => {
       toast.success("Decisão registrada");
       setComment("");
+      if (decision === "aprovado" && advance.data?.obra_id) push.mutate();
       queryClient.invalidateQueries({ queryKey: ["advance", id] });
       queryClient.invalidateQueries({ queryKey: ["advances"] });
     },
@@ -452,6 +495,33 @@ function Detalhe() {
           accent
         />
       </div>
+
+      {advance.data?.obra_id ? (
+        <div className="surface mt-6 flex flex-wrap items-center justify-between gap-3 p-5">
+          <div>
+            <p className="flex items-center gap-2 font-semibold">
+              <HardHat className="size-4 text-primary" />
+              Obra: {[obra.data?.codigo, obra.data?.nome].filter(Boolean).join(" · ") || "—"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {syncLog.data
+                ? `Último envio à Gestão de Obras: ${syncLog.data.success ? "sucesso" : "falha"} — ${syncLog.data.message ?? ""}`
+                : "Prestação ainda não enviada ao sistema de obras."}
+            </p>
+          </div>
+          {canReview ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => push.mutate()}
+              disabled={push.isPending || advance.data.decision !== "aprovado"}
+            >
+              <Send className="mr-2 size-4" />
+              {push.isPending ? "Enviando…" : "Enviar prestação à obra"}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
 
       {advance.data?.decision ? (
         <div className="surface mt-6 flex items-start gap-3 p-5">

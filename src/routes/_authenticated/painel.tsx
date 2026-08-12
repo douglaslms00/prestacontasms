@@ -49,6 +49,7 @@ type AdvanceRow = {
   issued_at: string;
   status: string;
   employee_id: string;
+  obra_id: string | null;
   expenses: { amount: number }[];
   advance_topups: { amount: number }[];
 };
@@ -58,6 +59,7 @@ const advanceSchema = z.object({
   description: z.string().trim().max(500).optional(),
   amount: z.number().positive("Valor deve ser maior que zero"),
   employee_id: z.string().uuid("Selecione o funcionário"),
+  obra_id: z.string().uuid().optional(),
   issued_at: z.string().min(1, "Informe a data"),
 });
 
@@ -75,7 +77,7 @@ function Painel() {
     queryFn: async (): Promise<AdvanceRow[]> => {
       const { data, error } = await supabase
         .from("advances")
-        .select("id, title, amount, issued_at, status, employee_id, expenses(amount), advance_topups(amount)")
+        .select("id, title, amount, issued_at, status, employee_id, obra_id, expenses(amount), advance_topups(amount)")
         .order("issued_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as AdvanceRow[];
@@ -94,6 +96,25 @@ function Painel() {
       return data ?? [];
     },
   });
+
+  const obras = useQuery({
+    queryKey: ["obras"],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("obras")
+        .select("id, nome, codigo")
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const obraName = (id: string | null) => {
+    if (!id) return null;
+    const o = obras.data?.find((x) => x.id === id);
+    return o ? [o.codigo, o.nome].filter(Boolean).join(" · ") : null;
+  };
 
   const nameOf = (id: string) => {
     const p = people.data?.find((x) => x.id === id);
@@ -116,6 +137,7 @@ function Painel() {
         description: form.description ?? null,
         amount: form.amount,
         employee_id: form.employee_id,
+        obra_id: form.obra_id ?? null,
         issued_at: form.issued_at,
         created_by: user!.id,
       });
@@ -146,6 +168,7 @@ function Painel() {
           {open ? (
             <NewAdvanceForm
               people={people.data ?? []}
+              obras={obras.data ?? []}
               onCancel={() => setOpen(false)}
               onSubmit={(form) => create.mutate(form)}
               pending={create.isPending}
@@ -184,6 +207,7 @@ function Painel() {
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {nameOf(a.employee_id)} · {dateBR(a.issued_at)}
+                  {obraName(a.obra_id) ? ` · Obra: ${obraName(a.obra_id)}` : ""}
                 </p>
               </div>
               <div className="flex items-center gap-6 text-right">
@@ -232,11 +256,13 @@ function Figure({ label, value, accent }: { label: string; value: string; accent
 
 function NewAdvanceForm({
   people,
+  obras,
   onCancel,
   onSubmit,
   pending,
 }: {
   people: { id: string; full_name: string | null; email: string | null }[];
+  obras: { id: string; nome: string; codigo: string }[];
   onCancel: () => void;
   onSubmit: (form: z.infer<typeof advanceSchema>) => void;
   pending: boolean;
@@ -246,6 +272,7 @@ function NewAdvanceForm({
   const [amount, setAmount] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [issuedAt, setIssuedAt] = useState(new Date().toISOString().slice(0, 10));
+  const [obraId, setObraId] = useState("");
 
   const submit = () => {
     const parsed = advanceSchema.safeParse({
@@ -253,6 +280,7 @@ function NewAdvanceForm({
       description,
       amount: Number(amount),
       employee_id: employeeId,
+      ...(obraId ? { obra_id: obraId } : {}),
       issued_at: issuedAt,
     });
     if (!parsed.success) {
@@ -297,6 +325,21 @@ function NewAdvanceForm({
         <div className="space-y-2">
           <Label>Data</Label>
           <Input type="date" value={issuedAt} onChange={(e) => setIssuedAt(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label>Obra (opcional)</Label>
+          <Select value={obraId} onValueChange={setObraId}>
+            <SelectTrigger>
+              <SelectValue placeholder={obras.length ? "Selecione a obra" : "Nenhuma obra sincronizada"} />
+            </SelectTrigger>
+            <SelectContent>
+              {obras.map((o) => (
+                <SelectItem key={o.id} value={o.id}>
+                  {[o.codigo, o.nome].filter(Boolean).join(" · ")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <div className="space-y-2">

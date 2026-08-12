@@ -1,45 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-
-export const OBRAS_APP_URL = "https://gestaoobraspro.lovable.app";
+import { apiKey, baseUrl, friendlyError, normalizeObras } from "@/lib/obras.server";
 
 const PushInput = z.object({ advanceId: z.string().uuid() });
 
 export type SyncResult = { imported: number; message: string };
 export type PushResult = { ok: boolean; message: string };
-
-type ObraExterna = {
-  id?: string | number;
-  codigo?: string;
-  nome?: string;
-  cliente?: string | null;
-  status?: string;
-};
-
-function baseUrl() {
-  return (process.env["OBRAS_API_URL"] ?? OBRAS_APP_URL).replace(/\/$/, "");
-}
-
-function apiKey() {
-  const key = process.env["OBRAS_API_KEY"];
-  if (!key) {
-    throw new Error(
-      "Integração indisponível: a chave de acesso do sistema de obras não está configurada.",
-    );
-  }
-  return key;
-}
-
-function friendlyError(status: number, body: string) {
-  if (status === 404) {
-    return "Integração indisponível: o sistema de obras ainda não publicou os endpoints /api/public/obras e /api/public/prestacoes.";
-  }
-  if (status === 401 || status === 403) {
-    return "Integração recusada: a chave de acesso do sistema de obras é inválida.";
-  }
-  return `Falha na integração [${status}]: ${body.slice(0, 200)}`;
-}
 
 export const syncObras = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -73,21 +40,7 @@ export const syncObras = createServerFn({ method: "POST" })
       throw new Error("O sistema de obras respondeu em formato inesperado.");
     }
 
-    const list: ObraExterna[] = Array.isArray(payload)
-      ? (payload as ObraExterna[])
-      : Array.isArray((payload as { obras?: unknown }).obras)
-        ? ((payload as { obras: ObraExterna[] }).obras)
-        : [];
-
-    const rows = list
-      .filter((o) => o && (o.id !== undefined || o.codigo))
-      .map((o) => ({
-        external_id: String(o.id ?? o.codigo),
-        codigo: String(o.codigo ?? ""),
-        nome: String(o.nome ?? o.codigo ?? "Obra"),
-        cliente: o.cliente ?? null,
-        status: String(o.status ?? "ativa"),
-      }));
+    const rows = normalizeObras(payload);
 
     if (rows.length === 0) {
       return { imported: 0, message: "Nenhuma obra encontrada no sistema de obras." };
