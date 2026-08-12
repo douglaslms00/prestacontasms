@@ -32,6 +32,13 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
             </div>
           </Link>
           <div className="flex items-center gap-2">
+            {can("integrar_obras") ? (
+              <Button variant="secondary" size="sm" asChild>
+                <a href={OBRAS_APP_URL} target="_blank" rel="noopener noreferrer">
+                  <HardHat className="mr-2 size-4" /> Gestão de Obras
+                </a>
+              </Button>
+            ) : null}
             {can("gerenciar_acessos") ? (
               <Button variant="secondary" size="sm" asChild>
                 <Link to="/acessos">
