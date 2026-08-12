@@ -1,8 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-
-export const OBRAS_APP_URL = "https://gestaoobraspro.lovable.app";
+import { OBRAS_APP_URL } from "@/lib/obras";
 
 const PushInput = z.object({ advanceId: z.string().uuid() });
 
