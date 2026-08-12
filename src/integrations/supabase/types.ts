@@ -62,6 +62,7 @@ export type Database = {
           employee_id: string
           id: string
           issued_at: string
+          obra_id: string | null
           review_comment: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -78,6 +79,7 @@ export type Database = {
           employee_id: string
           id?: string
           issued_at?: string
+          obra_id?: string | null
           review_comment?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -94,6 +96,7 @@ export type Database = {
           employee_id?: string
           id?: string
           issued_at?: string
+          obra_id?: string | null
           review_comment?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -101,7 +104,15 @@ export type Database = {
           submitted_at?: string | null
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "advances_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cargo_permissions: {
         Row: {
@@ -200,6 +211,84 @@ export type Database = {
           },
         ]
       }
+      obra_sync_logs: {
+        Row: {
+          advance_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          message: string | null
+          obra_id: string | null
+          success: boolean
+        }
+        Insert: {
+          advance_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message?: string | null
+          obra_id?: string | null
+          success?: boolean
+        }
+        Update: {
+          advance_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message?: string | null
+          obra_id?: string | null
+          success?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obra_sync_logs_advance_id_fkey"
+            columns: ["advance_id"]
+            isOneToOne: false
+            referencedRelation: "advances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "obra_sync_logs_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      obras: {
+        Row: {
+          cliente: string | null
+          codigo: string
+          created_at: string
+          external_id: string
+          id: string
+          nome: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cliente?: string | null
+          codigo?: string
+          created_at?: string
+          external_id: string
+          id?: string
+          nome: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cliente?: string | null
+          codigo?: string
+          created_at?: string
+          external_id?: string
+          id?: string
+          nome?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -297,6 +386,7 @@ export type Database = {
         | "ver_todos"
         | "lancar_despesa"
         | "gerenciar_acessos"
+        | "integrar_obras"
       app_role: "admin" | "funcionario"
     }
     CompositeTypes: {
@@ -433,6 +523,7 @@ export const Constants = {
         "ver_todos",
         "lancar_despesa",
         "gerenciar_acessos",
+        "integrar_obras",
       ],
       app_role: ["admin", "funcionario"],
     },
