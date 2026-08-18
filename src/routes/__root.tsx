@@ -78,14 +78,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Prestação de Contas | Controle de adiantamentos e despesas" },
+      { name: "description", content: "Controle adiantamentos de funcionários, lance despesas com cupom fiscal anexado e acompanhe saldo e valor a prestar em tempo real." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Prestação de Contas | Controle de adiantamentos e despesas" },
+      { property: "og:description", content: "Controle adiantamentos de funcionários, lance despesas com cupom fiscal anexado e acompanhe saldo e valor a prestar em tempo real." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Prestação de Contas | Controle de adiantamentos e despesas" },
+      { name: "twitter:description", content: "Controle adiantamentos de funcionários, lance despesas com cupom fiscal anexado e acompanhe saldo e valor a prestar em tempo real." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bf6af943886cea96c56f22bf9ca87b9e/id-preview-852c24ea--44ede9f1-c5cb-493d-83bd-2b4a9204ad15.lovable.app-1786969912617.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bf6af943886cea96c56f22bf9ca87b9e/id-preview-852c24ea--44ede9f1-c5cb-493d-83bd-2b4a9204ad15.lovable.app-1786969912617.png" },
     ],
     links: [
       {

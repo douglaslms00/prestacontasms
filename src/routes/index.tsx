@@ -11,11 +11,11 @@ export const Route = createFileRoute("/")({
         content:
           "Controle adiantamentos de funcionários, lance despesas com cupom fiscal anexado e acompanhe saldo e valor a prestar em tempo real.",
       },
-      { property: "og:title", content: "Prestação de Contas | Adiantamentos e despesas" },
+      { property: "og:title", content: "Prestação de Contas | Controle de adiantamentos e despesas" },
       {
         property: "og:description",
         content:
-          "Gestor libera o valor, o funcionário lança despesas com cupom fiscal e o sistema calcula o saldo automaticamente.",
+          "Controle adiantamentos de funcionários, lance despesas com cupom fiscal anexado e acompanhe saldo e valor a prestar em tempo real.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
