@@ -1,14 +1,18 @@
-# Welcome to your Lovable project
+# Expense Tracker Pro
+
+Crie um sistema de prestação de conta onde um valor é disponibilizado para o funcionario e ele vai lançando despesas e anexando cupom fiscal para cada lançamento e no final saber saldo total e valor a ser prestado
 
 This project was built with [Lovable](https://lovable.dev).
 
+**Live app**: https://prestacontasms.lovable.app
+
 ## Build with Lovable
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/44ede9f1-c5cb-493d-83bd-2b4a9204ad15).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
 ## Development
 
@@ -20,10 +24,3 @@ cd <repository-name>
 npm i
 npm run dev
 ```
-
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
