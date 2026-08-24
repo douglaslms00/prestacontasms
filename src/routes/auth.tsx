@@ -44,21 +44,21 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [forgotPassword, setForgotPassword] = useState(false);
-  const [resetPassword, setResetPassword] = useState(
-    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("reset") === "1",
-  );
+  const [resetPassword, setResetPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
+    const isRecoveryLink = new URLSearchParams(window.location.search).get("reset") === "1";
+    if (isRecoveryLink) setResetPassword(true);
     const { data: subscription } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setResetPassword(true);
     });
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session && !resetPassword) navigate({ to: "/painel", replace: true });
+      if (data.session && !isRecoveryLink) navigate({ to: "/painel", replace: true });
     });
     return () => subscription.subscription.unsubscribe();
-  }, [navigate, resetPassword]);
+  }, [navigate]);
 
   const submit = async (mode: "login" | "signup") => {
     const parsed = schema.safeParse({ email, password, fullName });
