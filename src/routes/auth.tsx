@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -192,7 +193,18 @@ function AuthPage() {
             ) : (
               <>
                 <Field label="E-mail" value={email} onChange={setEmail} type="email" />
-                <Field label="Senha" value={password} onChange={setPassword} type="password" />
+                <Field
+                  label="Senha"
+                  value={password}
+                  onChange={setPassword}
+                  type="password"
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void submit("login");
+                    }
+                  }}
+                />
                 <Button className="w-full" disabled={loading} onClick={() => submit("login")}>
                   Entrar
                 </Button>
@@ -232,16 +244,40 @@ function Field({
   value,
   onChange,
   type = "text",
+  onKeyDown,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   type?: string;
+  onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === "password";
+
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} />
+      <div className="relative">
+        <Input
+          type={isPassword && showPassword ? "text" : type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+          className={isPassword ? "pr-10" : undefined}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
+            onClick={() => setShowPassword((visible) => !visible)}
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+            title={showPassword ? "Ocultar senha" : "Mostrar senha"}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
