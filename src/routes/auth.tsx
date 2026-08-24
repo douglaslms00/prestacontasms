@@ -42,12 +42,22 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [forgotPassword, setForgotPassword] = useState(false);
+  const [resetPassword, setResetPassword] = useState(
+    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("reset") === "1",
+  );
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/painel", replace: true });
+    const { data: subscription } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setResetPassword(true);
     });
-  }, [navigate]);
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session && !resetPassword) navigate({ to: "/painel", replace: true });
+    });
+    return () => subscription.subscription.unsubscribe();
+  }, [navigate, resetPassword]);
 
   const submit = async (mode: "login" | "signup") => {
     const parsed = schema.safeParse({ email, password, fullName });
@@ -93,6 +103,50 @@ function AuthPage() {
     navigate({ to: "/painel", replace: true });
   };
 
+  const solicitarRedefinicao = async () => {
+    const parsed = z.string().trim().email("Informe um e-mail válido").safeParse(email);
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Informe um e-mail válido");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
+        redirectTo: `${window.location.origin}/auth?reset=1`,
+      });
+      if (error) throw error;
+      toast.success("Se houver uma conta com este e-mail, você receberá um link para redefinir a senha.");
+      setForgotPassword(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível enviar o link de recuperação");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const salvarNovaSenha = async () => {
+    const parsed = z.string().min(6, "A senha precisa ter ao menos 6 caracteres").max(72).safeParse(newPassword);
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Senha inválida");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("As senhas não coincidem");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success("Senha alterada com sucesso.");
+      navigate({ to: "/painel", replace: true });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível alterar a senha");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-secondary px-4 py-12">
       <div className="surface w-full max-w-md p-8">
@@ -101,6 +155,19 @@ function AuthPage() {
           Acesse para gerenciar adiantamentos e despesas.
         </p>
 
+        {resetPassword ? (
+          <div className="mt-6 space-y-4">
+            <div>
+              <h2 className="font-semibold">Criar nova senha</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Escolha uma nova senha para recuperar o acesso.</p>
+            </div>
+            <Field label="Nova senha" value={newPassword} onChange={setNewPassword} type="password" />
+            <Field label="Confirmar nova senha" value={confirmPassword} onChange={setConfirmPassword} type="password" />
+            <Button className="w-full" disabled={loading} onClick={salvarNovaSenha}>
+              {loading ? "Salvando..." : "Salvar nova senha"}
+            </Button>
+          </div>
+        ) : (
         <Tabs defaultValue="login" className="mt-6">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Entrar</TabsTrigger>
@@ -108,11 +175,32 @@ function AuthPage() {
           </TabsList>
 
           <TabsContent value="login" className="mt-6 space-y-4">
-            <Field label="E-mail" value={email} onChange={setEmail} type="email" />
-            <Field label="Senha" value={password} onChange={setPassword} type="password" />
-            <Button className="w-full" disabled={loading} onClick={() => submit("login")}>
-              Entrar
-            </Button>
+            {forgotPassword ? (
+              <>
+                <div>
+                  <h2 className="font-semibold">Recuperar acesso</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Informe seu e-mail para receber o link de redefinição de senha.</p>
+                </div>
+                <Field label="E-mail" value={email} onChange={setEmail} type="email" />
+                <Button className="w-full" disabled={loading} onClick={solicitarRedefinicao}>
+                  {loading ? "Enviando..." : "Enviar link de recuperação"}
+                </Button>
+                <Button variant="link" className="w-full" disabled={loading} onClick={() => setForgotPassword(false)}>
+                  Voltar para entrar
+                </Button>
+              </>
+            ) : (
+              <>
+                <Field label="E-mail" value={email} onChange={setEmail} type="email" />
+                <Field label="Senha" value={password} onChange={setPassword} type="password" />
+                <Button className="w-full" disabled={loading} onClick={() => submit("login")}>
+                  Entrar
+                </Button>
+                <Button variant="link" className="w-full" disabled={loading} onClick={() => setForgotPassword(true)}>
+                  Esqueceu sua senha?
+                </Button>
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="signup" className="mt-6 space-y-4">
@@ -124,13 +212,16 @@ function AuthPage() {
             </Button>
           </TabsContent>
         </Tabs>
+        )}
 
-        <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="h-px flex-1 bg-border" /> ou <span className="h-px flex-1 bg-border" />
-        </div>
-        <Button variant="outline" className="w-full" onClick={google}>
-          Continuar com Google
-        </Button>
+        {!resetPassword && <>
+          <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" /> ou <span className="h-px flex-1 bg-border" />
+          </div>
+          <Button variant="outline" className="w-full" onClick={google}>
+            Continuar com Google
+          </Button>
+        </>}
       </div>
     </main>
   );
