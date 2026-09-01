@@ -105,6 +105,12 @@ function Detalhe() {
   const [topupDate, setTopupDate] = useState(new Date().toISOString().slice(0, 10));
   const [reading, setReading] = useState(false);
   const [ocrFilled, setOcrFilled] = useState<string[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editAmount, setEditAmount] = useState("");
+  const [editIssuedAt, setEditIssuedAt] = useState("");
+  const navigate = useNavigate();
   const runOcr = useServerFn(readReceipt);
   const runPush = useServerFn(pushPrestacao);
 
