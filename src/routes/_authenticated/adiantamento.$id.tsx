@@ -11,6 +11,7 @@ import {
   FileText,
   HardHat,
   Lock,
+  Pencil,
   Paperclip,
   Send,
   Sparkles,
