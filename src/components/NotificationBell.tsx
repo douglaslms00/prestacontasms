@@ -65,7 +65,7 @@ export function NotificationBell() {
                     <div className="min-w-0">
                       {n.link ? (
                         <Link
-                          to={n.link}
+                          to={n.link as string}
                           onClick={() => !n.read_at && markRead.mutate(n.id)}
                           className="font-medium hover:underline"
                         >
