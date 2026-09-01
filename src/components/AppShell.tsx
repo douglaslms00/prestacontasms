@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePermissions } from "@/hooks/useAuth";
 import { OBRAS_APP_URL } from "@/lib/obras";
 import { NotificationBell } from "@/components/NotificationBell";
+import { ProfileBadge } from "@/components/ProfileBadge";
 
 export function AppShell({ children, subtitle }: { children: ReactNode; subtitle?: string }) {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
             </div>
           </Link>
           <div className="flex flex-wrap items-center gap-2">
+            <ProfileBadge />
             <NotificationBell />
             {can("integrar_obras") ? (
               <Button variant="secondary" size="sm" asChild>
