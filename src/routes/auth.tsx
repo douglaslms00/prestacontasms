@@ -94,7 +94,7 @@ function AuthPage() {
   }, [navigate]);
 
   const submit = async (mode: "login" | "signup") => {
-    const parsed = schema.safeParse({ email, password, fullName });
+    const parsed = (mode === "signup" ? signupSchema : loginSchema).safeParse({ email, password, fullName });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
       return;
@@ -159,7 +159,7 @@ function AuthPage() {
   };
 
   const salvarNovaSenha = async () => {
-    const parsed = z.string().min(6, "A senha precisa ter ao menos 6 caracteres").max(72).safeParse(newPassword);
+    const parsed = strongPassword.safeParse(newPassword);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Senha inválida");
       return;
@@ -195,6 +195,7 @@ function AuthPage() {
               <h2 className="font-semibold">Criar nova senha</h2>
               <p className="mt-1 text-sm text-muted-foreground">Escolha uma nova senha para recuperar o acesso.</p>
             </div>
+            <PasswordRules />
             <Field label="Nova senha" value={newPassword} onChange={setNewPassword} type="password" />
             <Field label="Confirmar nova senha" value={confirmPassword} onChange={setConfirmPassword} type="password" />
             <Button className="w-full" disabled={loading} onClick={salvarNovaSenha}>
@@ -252,6 +253,8 @@ function AuthPage() {
             <Field label="Nome completo" value={fullName} onChange={setFullName} />
             <Field label="E-mail" value={email} onChange={setEmail} type="email" />
             <Field label="Senha" value={password} onChange={setPassword} type="password" />
+            <PasswordRules />
+            <p className="sr-only">{PASSWORD_HINT}</p>
             <Button className="w-full" disabled={loading} onClick={() => submit("signup")}>
               Criar conta
             </Button>
