@@ -536,10 +536,85 @@ function Detalhe() {
             </Badge>
           ) : null}
         </div>
-        <Button variant="outline" onClick={exportPdf} disabled={exporting || !advance.data}>
-          <FileText className="mr-2 size-4" /> {exporting ? "Gerando…" : "Relatório PDF"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={exportPdf} disabled={exporting || !advance.data}>
+            <FileText className="mr-2 size-4" /> {exporting ? "Gerando…" : "Relatório PDF"}
+          </Button>
+          {canManage && advance.data ? (
+            <>
+              <Button variant="outline" onClick={startEdit}>
+                <Pencil className="mr-2 size-4" /> Editar
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={removeAdvance.isPending}>
+                    <Trash2 className="mr-2 size-4" /> Excluir
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir adiantamento?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Todas as despesas, cupons vinculados e verbas adicionais deste adiantamento
+                      serão removidos. Esta ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => removeAdvance.mutate()}>
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
+          ) : null}
+        </div>
       </div>
+
+      {canManage && editing ? (
+        <div className="surface mt-6 space-y-4 p-6">
+          <h2 className="font-semibold">Editar adiantamento</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Título</Label>
+              <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Valor inicial (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={editAmount}
+                onChange={(e) => setEditAmount(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Data de liberação</Label>
+              <Input
+                type="date"
+                value={editIssuedAt}
+                onChange={(e) => setEditIssuedAt(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Descrição</Label>
+              <Textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => saveAdvance.mutate()} disabled={saveAdvance.isPending}>
+              {saveAdvance.isPending ? "Salvando…" : "Salvar alterações"}
+            </Button>
+            <Button variant="ghost" onClick={() => setEditing(false)}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      ) : null}
       {advance.data?.description ? (
         <p className="mt-1 text-sm text-muted-foreground">{advance.data.description}</p>
       ) : null}
