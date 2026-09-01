@@ -32,6 +32,7 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
             </div>
           </Link>
           <div className="flex flex-wrap items-center gap-2">
+            <NotificationBell />
             {can("integrar_obras") ? (
               <Button variant="secondary" size="sm" asChild>
                 <a
