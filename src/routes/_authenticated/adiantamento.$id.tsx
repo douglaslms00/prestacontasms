@@ -443,6 +443,46 @@ function Detalhe() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const saveAdvance = useMutation({
+    mutationFn: async () => {
+      const title = editTitle.trim();
+      const value = Number(editAmount);
+      if (title.length < 2) throw new Error("Informe um título válido");
+      if (!Number.isFinite(value) || value <= 0) throw new Error("Informe um valor válido");
+      if (!editIssuedAt) throw new Error("Informe a data de liberação");
+      const { error } = await supabase
+        .from("advances")
+        .update({
+          title: title.slice(0, 200),
+          description: editDescription.trim() ? editDescription.trim().slice(0, 1000) : null,
+          amount: value,
+          issued_at: editIssuedAt,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Adiantamento atualizado");
+      setEditing(false);
+      queryClient.invalidateQueries({ queryKey: ["advance", id] });
+      queryClient.invalidateQueries({ queryKey: ["advances"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const removeAdvance = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("advances").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Adiantamento excluído");
+      queryClient.invalidateQueries({ queryKey: ["advances"] });
+      void navigate({ to: "/painel" });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const openReceipt = async (path: string, download?: boolean) => {
     const { data, error } = await supabase.storage
       .from("cupons")
