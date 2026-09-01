@@ -291,18 +291,21 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_path: string | null
           created_at: string
           email: string | null
           full_name: string
           id: string
         }
         Insert: {
+          avatar_path?: string | null
           created_at?: string
           email?: string | null
           full_name?: string
           id?: string
         }
         Update: {
+          avatar_path?: string | null
           created_at?: string
           email?: string | null
           full_name?: string

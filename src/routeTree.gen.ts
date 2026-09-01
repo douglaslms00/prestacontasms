@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAcessosRouteImport } from './routes/_authenticated/acessos'
 import { Route as AuthenticatedGestaoRouteImport } from './routes/_authenticated/gestao'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
+import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedAdiantamentoIdRouteImport } from './routes/_authenticated/adiantamento.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -46,6 +47,11 @@ const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   path: '/painel',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdiantamentoIdRoute =
   AuthenticatedAdiantamentoIdRouteImport.update({
     id: '/adiantamento/$id',
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/acessos': typeof AuthenticatedAcessosRoute
   '/gestao': typeof AuthenticatedGestaoRoute
   '/painel': typeof AuthenticatedPainelRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
   '/adiantamento/$id': typeof AuthenticatedAdiantamentoIdRoute
 }
 export interface FileRoutesByTo {
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/acessos': typeof AuthenticatedAcessosRoute
   '/gestao': typeof AuthenticatedGestaoRoute
   '/painel': typeof AuthenticatedPainelRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
   '/adiantamento/$id': typeof AuthenticatedAdiantamentoIdRoute
 }
 export interface FileRoutesById {
@@ -77,14 +85,28 @@ export interface FileRoutesById {
   '/_authenticated/acessos': typeof AuthenticatedAcessosRoute
   '/_authenticated/gestao': typeof AuthenticatedGestaoRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
+  '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/adiantamento/$id': typeof AuthenticatedAdiantamentoIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/auth' | '/acessos' | '/gestao' | '/painel' | '/adiantamento/$id'
+    | '/'
+    | '/auth'
+    | '/acessos'
+    | '/gestao'
+    | '/painel'
+    | '/perfil'
+    | '/adiantamento/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/acessos' | '/gestao' | '/painel' | '/adiantamento/$id'
+  to:
+    | '/'
+    | '/auth'
+    | '/acessos'
+    | '/gestao'
+    | '/painel'
+    | '/perfil'
+    | '/adiantamento/$id'
   id:
     | '__root__'
     | '/'
@@ -93,6 +115,7 @@ export interface FileRouteTypes {
     | '/_authenticated/acessos'
     | '/_authenticated/gestao'
     | '/_authenticated/painel'
+    | '/_authenticated/perfil'
     | '/_authenticated/adiantamento/$id'
   fileRoutesById: FileRoutesById
 }
@@ -146,6 +169,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPainelRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/perfil': {
+      id: '/_authenticated/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/adiantamento/$id': {
       id: '/_authenticated/adiantamento/$id'
       path: '/adiantamento/$id'
@@ -160,6 +190,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcessosRoute: typeof AuthenticatedAcessosRoute
   AuthenticatedGestaoRoute: typeof AuthenticatedGestaoRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
+  AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedAdiantamentoIdRoute: typeof AuthenticatedAdiantamentoIdRoute
 }
 
@@ -167,6 +198,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAcessosRoute: AuthenticatedAcessosRoute,
   AuthenticatedGestaoRoute: AuthenticatedGestaoRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
+  AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedAdiantamentoIdRoute: AuthenticatedAdiantamentoIdRoute,
 }
 

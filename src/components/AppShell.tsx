@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { HardHat, LayoutDashboard, LogOut, Receipt, Shield } from "lucide-react";
+import { HardHat, LayoutDashboard, LogOut, Receipt, Shield, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePermissions } from "@/hooks/useAuth";
@@ -55,6 +55,12 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
               <Link to="/acessos" aria-label="Acesso">
                 <Shield className="size-4 sm:mr-2" />
                 <span className="hidden sm:inline">Acesso</span>
+              </Link>
+            </Button>
+            <Button variant="secondary" size="sm" asChild>
+              <Link to="/perfil" aria-label="Meu perfil">
+                <UserCog className="size-4 sm:mr-2" />
+                <span className="hidden sm:inline">Perfil</span>
               </Link>
             </Button>
             <Button variant="secondary" size="sm" onClick={signOut} aria-label="Sair">
