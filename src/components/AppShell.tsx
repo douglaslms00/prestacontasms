@@ -23,39 +23,49 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
   return (
     <div className="min-h-screen bg-secondary/50">
       <header className="bg-gradient-brand text-primary-foreground">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-5">
-          <Link to="/painel" className="flex items-center gap-2">
-            <Receipt className="size-5" />
-            <div>
-              <p className="font-display text-base font-semibold">Prestação de Contas</p>
-              {subtitle ? <p className="text-xs opacity-80">{subtitle}</p> : null}
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-5">
+          <Link to="/painel" className="flex min-w-0 items-center gap-2">
+            <Receipt className="size-5 shrink-0" />
+            <div className="min-w-0">
+              <p className="truncate font-display text-base font-semibold">Prestação de Contas</p>
+              {subtitle ? <p className="truncate text-xs opacity-80">{subtitle}</p> : null}
             </div>
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {can("integrar_obras") ? (
               <Button variant="secondary" size="sm" asChild>
-                <a href={OBRAS_APP_URL} target="_blank" rel="noopener noreferrer">
-                  <HardHat className="mr-2 size-4" /> Gestão de Obras
+                <a
+                  href={OBRAS_APP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Gestão de Obras"
+                >
+                  <HardHat className="size-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Gestão de Obras</span>
                 </a>
               </Button>
             ) : null}
             <Button variant="secondary" size="sm" asChild>
-              <Link to="/gestao">
-                <LayoutDashboard className="mr-2 size-4" /> Gestão
+              <Link to="/gestao" aria-label="Gestão">
+                <LayoutDashboard className="size-4 sm:mr-2" />
+                <span className="hidden sm:inline">Gestão</span>
               </Link>
             </Button>
             <Button variant="secondary" size="sm" asChild>
-              <Link to="/acessos">
-                <Shield className="mr-2 size-4" /> Acesso
+              <Link to="/acessos" aria-label="Acesso">
+                <Shield className="size-4 sm:mr-2" />
+                <span className="hidden sm:inline">Acesso</span>
               </Link>
             </Button>
-            <Button variant="secondary" size="sm" onClick={signOut}>
-              <LogOut className="mr-2 size-4" /> Sair
+            <Button variant="secondary" size="sm" onClick={signOut} aria-label="Sair">
+              <LogOut className="size-4 sm:mr-2" />
+              <span className="hidden sm:inline">Sair</span>
             </Button>
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-6 py-10">{children}</main>
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">{children}</main>
+
     </div>
   );
 }
