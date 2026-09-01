@@ -40,6 +40,11 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
               </Button>
             ) : null}
             <Button variant="secondary" size="sm" asChild>
+              <Link to="/gestao">
+                <LayoutDashboard className="mr-2 size-4" /> Gestão
+              </Link>
+            </Button>
+            <Button variant="secondary" size="sm" asChild>
               <Link to="/acessos">
                 <Shield className="mr-2 size-4" /> Acesso
               </Link>
