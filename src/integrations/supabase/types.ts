@@ -211,6 +211,50 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          advance_id: string | null
+          body: string
+          created_at: string
+          id: string
+          link: string | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          advance_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          advance_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_advance_id_fkey"
+            columns: ["advance_id"]
+            isOneToOne: false
+            referencedRelation: "advances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       obra_sync_logs: {
         Row: {
           advance_id: string
@@ -378,6 +422,18 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      notify_users_with_permission: {
+        Args: {
+          _advance_id: string
+          _body: string
+          _exclude: string
+          _link: string
+          _permission: Database["public"]["Enums"]["app_permission"]
+          _title: string
+          _type: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
