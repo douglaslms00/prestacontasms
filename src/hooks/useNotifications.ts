@@ -9,6 +9,7 @@ export type Notification = {
   body: string;
   type: string;
   link: string | null;
+  advance_id: string | null;
   read_at: string | null;
   created_at: string;
 };
@@ -22,7 +23,7 @@ export function useNotifications(userId?: string) {
     queryFn: async (): Promise<Notification[]> => {
       const { data, error } = await supabase
         .from("notifications")
-        .select("id, title, body, type, link, read_at, created_at")
+        .select("id, title, body, type, link, advance_id, read_at, created_at")
         .order("created_at", { ascending: false })
         .limit(30);
       if (error) throw error;
