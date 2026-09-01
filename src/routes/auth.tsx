@@ -31,11 +31,44 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-const schema = z.object({
+const PASSWORD_HINT =
+  "A senha deve ter de 8 a 72 caracteres e conter letras maiúsculas, letras minúsculas, números e ao menos um caractere especial (ex.: !@#$%).";
+
+const strongPassword = z
+  .string()
+  .min(8, "A senha precisa ter no mínimo 8 caracteres")
+  .max(72, "A senha pode ter no máximo 72 caracteres")
+  .regex(/[A-Z]/, "A senha precisa conter ao menos uma letra maiúscula")
+  .regex(/[a-z]/, "A senha precisa conter ao menos uma letra minúscula")
+  .regex(/[0-9]/, "A senha precisa conter ao menos um número")
+  .regex(/[^A-Za-z0-9]/, "A senha precisa conter ao menos um caractere especial");
+
+const loginSchema = z.object({
   email: z.string().trim().email("E-mail inválido").max(255),
-  password: z.string().min(6, "A senha precisa ter ao menos 6 caracteres").max(72),
+  password: z.string().min(1, "Informe sua senha").max(72),
   fullName: z.string().trim().max(120).optional(),
 });
+
+const signupSchema = z.object({
+  email: z.string().trim().email("E-mail inválido").max(255),
+  password: strongPassword,
+  fullName: z.string().trim().max(120).optional(),
+});
+
+function PasswordRules() {
+  return (
+    <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+      <p className="font-medium text-foreground">Requisitos da senha</p>
+      <ul className="mt-1 list-disc space-y-0.5 pl-4">
+        <li>Mínimo de 8 e máximo de 72 caracteres</li>
+        <li>Ao menos uma letra maiúscula (A-Z)</li>
+        <li>Ao menos uma letra minúscula (a-z)</li>
+        <li>Ao menos um número (0-9)</li>
+        <li>Ao menos um caractere especial (!@#$%&amp;*)</li>
+      </ul>
+    </div>
+  );
+}
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -61,7 +94,7 @@ function AuthPage() {
   }, [navigate]);
 
   const submit = async (mode: "login" | "signup") => {
-    const parsed = schema.safeParse({ email, password, fullName });
+    const parsed = (mode === "signup" ? signupSchema : loginSchema).safeParse({ email, password, fullName });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
       return;
@@ -126,7 +159,7 @@ function AuthPage() {
   };
 
   const salvarNovaSenha = async () => {
-    const parsed = z.string().min(6, "A senha precisa ter ao menos 6 caracteres").max(72).safeParse(newPassword);
+    const parsed = strongPassword.safeParse(newPassword);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Senha inválida");
       return;
@@ -162,6 +195,7 @@ function AuthPage() {
               <h2 className="font-semibold">Criar nova senha</h2>
               <p className="mt-1 text-sm text-muted-foreground">Escolha uma nova senha para recuperar o acesso.</p>
             </div>
+            <PasswordRules />
             <Field label="Nova senha" value={newPassword} onChange={setNewPassword} type="password" />
             <Field label="Confirmar nova senha" value={confirmPassword} onChange={setConfirmPassword} type="password" />
             <Button className="w-full" disabled={loading} onClick={salvarNovaSenha}>
@@ -219,6 +253,8 @@ function AuthPage() {
             <Field label="Nome completo" value={fullName} onChange={setFullName} />
             <Field label="E-mail" value={email} onChange={setEmail} type="email" />
             <Field label="Senha" value={password} onChange={setPassword} type="password" />
+            <PasswordRules />
+            <p className="sr-only">{PASSWORD_HINT}</p>
             <Button className="w-full" disabled={loading} onClick={() => submit("signup")}>
               Criar conta
             </Button>
