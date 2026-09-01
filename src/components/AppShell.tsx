@@ -39,13 +39,11 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
                 </a>
               </Button>
             ) : null}
-            {can("gerenciar_acessos") ? (
-              <Button variant="secondary" size="sm" asChild>
-                <Link to="/acessos">
-                  <Shield className="mr-2 size-4" /> Acessos
-                </Link>
-              </Button>
-            ) : null}
+            <Button variant="secondary" size="sm" asChild>
+              <Link to="/acessos">
+                <Shield className="mr-2 size-4" /> Acesso
+              </Link>
+            </Button>
             <Button variant="secondary" size="sm" onClick={signOut}>
               <LogOut className="mr-2 size-4" /> Sair
             </Button>
