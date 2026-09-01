@@ -193,6 +193,16 @@ function Detalhe() {
   const isOpen = advance.data?.status === "aberto";
   const isReview = advance.data?.status === "em_analise";
   const isClosed = advance.data?.status === "fechado";
+  const canManage = isAdmin || canReview;
+
+  const startEdit = () => {
+    if (!advance.data) return;
+    setEditTitle(advance.data.title ?? "");
+    setEditDescription(advance.data.description ?? "");
+    setEditAmount(String(advance.data.amount ?? ""));
+    setEditIssuedAt(advance.data.issued_at ?? "");
+    setEditing(true);
+  };
 
   const toDataUrl = (f: File) =>
     new Promise<string>((resolve, reject) => {
