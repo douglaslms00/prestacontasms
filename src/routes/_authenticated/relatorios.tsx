@@ -62,7 +62,7 @@ function monthKey(iso: string) {
 }
 
 function monthLabel(key: string) {
-  const [y, m] = key.split("-");
+  const [y = "", m = ""] = key.split("-");
   return `${m}/${y.slice(2)}`;
 }
 
