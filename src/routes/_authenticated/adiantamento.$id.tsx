@@ -745,7 +745,17 @@ function Detalhe() {
             onValueChange={(v) =>
               supabase
                 .from("advances")
-                .update({ status: v as "aberto" | "em_analise" | "fechado" })
+                .update(
+                  v === "aberto"
+                    ? {
+                        status: "aberto",
+                        decision: null,
+                        review_comment: null,
+                        reviewed_at: null,
+                        reviewed_by: null,
+                      }
+                    : { status: v as "em_analise" | "fechado" }
+                )
                 .eq("id", id)
                 .then(({ error }) => {
                   if (error) toast.error(error.message);
