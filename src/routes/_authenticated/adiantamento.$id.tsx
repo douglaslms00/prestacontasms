@@ -745,7 +745,17 @@ function Detalhe() {
             onValueChange={(v) =>
               supabase
                 .from("advances")
-                .update({ status: v as "aberto" | "em_analise" | "fechado" })
+                .update(
+                  v === "aberto"
+                    ? {
+                        status: "aberto",
+                        decision: null,
+                        review_comment: null,
+                        reviewed_at: null,
+                        reviewed_by: null,
+                      }
+                    : { status: v as "em_analise" | "fechado" }
+                )
                 .eq("id", id)
                 .then(({ error }) => {
                   if (error) toast.error(error.message);
@@ -834,7 +844,7 @@ function Detalhe() {
         </>
       ) : null}
 
-      {isOwner && isOpen ? (
+      {(isOwner || canManage) && isOpen ? (
         <div className="surface mt-8 space-y-4 p-6">
           <h2 className="font-semibold">Lançar despesa</h2>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -940,7 +950,7 @@ function Detalhe() {
         </div>
       ) : null}
 
-      {isOwner && isOpen ? (
+      {(isOwner || canManage) && isOpen ? (
         <div className="surface mt-6 flex flex-wrap items-center justify-between gap-4 p-6">
           <div>
             <p className="font-semibold">Enviar prestação final</p>
