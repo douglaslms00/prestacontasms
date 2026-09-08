@@ -49,6 +49,7 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
             </div>
           </Link>
 
+          <div className="flex items-center gap-2">
           <NotificationBell />
 
           {/* Desktop */}
