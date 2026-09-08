@@ -75,7 +75,6 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
 
           {/* Mobile */}
           <div className="flex items-center gap-2 md:hidden">
-            <NotificationBell />
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="secondary" size="icon" aria-label="Abrir menu">
