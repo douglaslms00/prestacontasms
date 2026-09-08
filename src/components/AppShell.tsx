@@ -49,10 +49,11 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
             </div>
           </Link>
 
+          <NotificationBell />
+
           {/* Desktop */}
           <div className="hidden items-center gap-2 md:flex">
             <ProfileBadge />
-            <NotificationBell />
             {can("integrar_obras") ? (
               <Button variant="secondary" size="sm" asChild>
                 <a href={OBRAS_APP_URL} target="_blank" rel="noopener noreferrer">
