@@ -23,6 +23,7 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
   const { user } = useSession();
   const { can } = usePermissions(user?.id);
   const [menuOpen, setMenuOpen] = useState(false);
+  useIdleLogout(!!user);
 
   const signOut = async () => {
     await queryClient.cancelQueries();
