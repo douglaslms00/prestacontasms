@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePermissions } from "@/hooks/useAuth";
+import { useIdleLogout } from "@/hooks/useIdleLogout";
 import { OBRAS_APP_URL } from "@/lib/obras";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ProfileBadge } from "@/components/ProfileBadge";
@@ -22,6 +23,7 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
   const { user } = useSession();
   const { can } = usePermissions(user?.id);
   const [menuOpen, setMenuOpen] = useState(false);
+  useIdleLogout(!!user);
 
   const signOut = async () => {
     await queryClient.cancelQueries();
