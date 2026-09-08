@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePermissions } from "@/hooks/useAuth";
+import { useIdleLogout } from "@/hooks/useIdleLogout";
 import { OBRAS_APP_URL } from "@/lib/obras";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ProfileBadge } from "@/components/ProfileBadge";
