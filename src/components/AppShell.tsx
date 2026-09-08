@@ -49,10 +49,12 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
             </div>
           </Link>
 
+          <div className="flex items-center gap-2">
+          <NotificationBell />
+
           {/* Desktop */}
           <div className="hidden items-center gap-2 md:flex">
             <ProfileBadge />
-            <NotificationBell />
             {can("integrar_obras") ? (
               <Button variant="secondary" size="sm" asChild>
                 <a href={OBRAS_APP_URL} target="_blank" rel="noopener noreferrer">
@@ -74,7 +76,6 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
 
           {/* Mobile */}
           <div className="flex items-center gap-2 md:hidden">
-            <NotificationBell />
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="secondary" size="icon" aria-label="Abrir menu">
@@ -124,6 +125,7 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
                 </nav>
               </SheetContent>
             </Sheet>
+          </div>
           </div>
         </div>
       </header>
