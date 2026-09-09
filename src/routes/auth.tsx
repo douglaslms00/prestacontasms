@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -29,36 +30,43 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-const schema = z.object({
-  identifier: z.string().trim().min(1, "Informe CPF ou e-mail").max(255),
-  password: z.string().min(6, "A senha precisa ter ao menos 6 caracteres").max(72),
+const PASSWORD_HINT =
+  "A senha deve ter de 8 a 72 caracteres e conter letras maiúsculas, letras minúsculas, números e ao menos um caractere especial (ex.: !@#$%).";
+
+const strongPassword = z
+  .string()
+  .min(8, "A senha precisa ter no mínimo 8 caracteres")
+  .max(72, "A senha pode ter no máximo 72 caracteres")
+  .regex(/[A-Z]/, "A senha precisa conter ao menos uma letra maiúscula")
+  .regex(/[a-z]/, "A senha precisa conter ao menos uma letra minúscula")
+  .regex(/[0-9]/, "A senha precisa conter ao menos um número")
+  .regex(/[^A-Za-z0-9]/, "A senha precisa conter ao menos um caractere especial");
+
+const loginSchema = z.object({
+  email: z.string().trim().email("E-mail inválido").max(255),
+  password: z.string().min(1, "Informe sua senha").max(72),
   fullName: z.string().trim().max(120).optional(),
 });
 
-function normalizeCpf(input: string): string {
-  return input.replace(/\D/g, "");
-}
+const signupSchema = z.object({
+  email: z.string().trim().email("E-mail inválido").max(255),
+  password: strongPassword,
+  fullName: z.string().trim().max(120).optional(),
+});
 
-function looksLikeEmail(input: string): boolean {
-  return /\S+@\S+\.\S+/.test(input);
-}
-
-async function findEmailByCpf(cpf: string): Promise<string | null> {
-  // Tenta buscar em profiles (ajuste o nome da tabela caso seja diferente)
-  try {
-    const { data, error } = await supabase.from("profiles").select("email").eq("cpf", cpf).maybeSingle();
-    if (!error && data?.email) return data.email as string;
-  } catch {
-    // ignore
-  }
-  // Fallback: tenta em tabela users (caso exista uma tabela de perfil separada)
-  try {
-    const { data, error } = await supabase.from("users").select("email").eq("cpf", cpf).maybeSingle();
-    if (!error && data?.email) return data.email as string;
-  } catch {
-    // ignore
-  }
-  return null;
+function PasswordRules() {
+  return (
+    <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+      <p className="font-medium text-foreground">Requisitos da senha</p>
+      <ul className="mt-1 list-disc space-y-0.5 pl-4">
+        <li>Mínimo de 8 e máximo de 72 caracteres</li>
+        <li>Ao menos uma letra maiúscula (A-Z)</li>
+        <li>Ao menos uma letra minúscula (a-z)</li>
+        <li>Ao menos um número (0-9)</li>
+        <li>Ao menos um caractere especial (!@#$%&amp;*)</li>
+      </ul>
+    </div>
+  );
 }
 
 function AuthPage() {
@@ -68,24 +76,24 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [forgotPassword, setForgotPassword] = useState(false);
-  const [resetPassword, setResetPassword] = useState(
-    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("reset") === "1",
-  );
+  const [resetPassword, setResetPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
+    const isRecoveryLink = new URLSearchParams(window.location.search).get("reset") === "1";
+    if (isRecoveryLink) setResetPassword(true);
     const { data: subscription } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setResetPassword(true);
     });
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session && !resetPassword) navigate({ to: "/painel", replace: true });
+      if (data.session && !isRecoveryLink) navigate({ to: "/painel", replace: true });
     });
     return () => subscription.subscription.unsubscribe();
-  }, [navigate, resetPassword]);
+  }, [navigate]);
 
   const submit = async (mode: "login" | "signup") => {
-    const parsed = schema.safeParse({ identifier, password, fullName });
+    const parsed = (mode === "signup" ? signupSchema : loginSchema).safeParse({ email, password, fullName });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
       return;
@@ -184,7 +192,7 @@ function AuthPage() {
   };
 
   const salvarNovaSenha = async () => {
-    const parsed = z.string().min(6, "A senha precisa ter ao menos 6 caracteres").max(72).safeParse(newPassword);
+    const parsed = strongPassword.safeParse(newPassword);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Senha inválida");
       return;
@@ -220,6 +228,7 @@ function AuthPage() {
               <h2 className="font-semibold">Criar nova senha</h2>
               <p className="mt-1 text-sm text-muted-foreground">Escolha uma nova senha para recuperar o acesso.</p>
             </div>
+            <PasswordRules />
             <Field label="Nova senha" value={newPassword} onChange={setNewPassword} type="password" />
             <Field label="Confirmar nova senha" value={confirmPassword} onChange={setConfirmPassword} type="password" />
             <Button className="w-full" disabled={loading} onClick={salvarNovaSenha}>
@@ -250,8 +259,19 @@ function AuthPage() {
               </>
             ) : (
               <>
-                <Field label="CPF ou E-mail" value={identifier} onChange={setIdentifier} />
-                <Field label="Senha" value={password} onChange={setPassword} type="password" />
+                <Field label="E-mail" value={email} onChange={setEmail} type="email" />
+                <Field
+                  label="Senha"
+                  value={password}
+                  onChange={setPassword}
+                  type="password"
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void submit("login");
+                    }
+                  }}
+                />
                 <Button className="w-full" disabled={loading} onClick={() => submit("login")}>
                   Entrar
                 </Button>
@@ -266,6 +286,8 @@ function AuthPage() {
             <Field label="Nome completo" value={fullName} onChange={setFullName} />
             <Field label="E-mail" value={identifier} onChange={setIdentifier} type="email" />
             <Field label="Senha" value={password} onChange={setPassword} type="password" />
+            <PasswordRules />
+            <p className="sr-only">{PASSWORD_HINT}</p>
             <Button className="w-full" disabled={loading} onClick={() => submit("signup")}>
               Criar conta
             </Button>
@@ -282,16 +304,40 @@ function Field({
   value,
   onChange,
   type = "text",
+  onKeyDown,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   type?: string;
+  onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === "password";
+
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} />
+      <div className="relative">
+        <Input
+          type={isPassword && showPassword ? "text" : type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+          className={isPassword ? "pr-10" : undefined}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
+            onClick={() => setShowPassword((visible) => !visible)}
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+            title={showPassword ? "Ocultar senha" : "Mostrar senha"}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

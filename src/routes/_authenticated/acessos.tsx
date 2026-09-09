@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { HardHat, KeyRound, Plus, RefreshCw, Save, Shield, Trash2, UserPlus } from "lucide-react";
 import { HardHat, Plus, RefreshCw, Shield, Trash2, UserPlus, Lock, Eye, EyeOff } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,7 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { syncObras } from "@/lib/obras.functions";
-import { createUserLogin, resetUserPassword } from "@/lib/auth.functions";
+import { createUserAccount, setUserPassword } from "@/lib/admin-users.functions";
 import { OBRAS_APP_URL } from "@/lib/obras";
 import {
   PERMISSIONS,
@@ -81,6 +82,18 @@ function Acessos() {
   const [description, setDescription] = useState("");
   const [pickUser, setPickUser] = useState("");
   const [pickCargo, setPickCargo] = useState("");
+  const [edits, setEdits] = useState<Record<string, { name: string; description: string }>>({});
+
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newFullName, setNewFullName] = useState("");
+  const [newCargo, setNewCargo] = useState("");
+  const [newAdmin, setNewAdmin] = useState(false);
+  const [resetFor, setResetFor] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
+
+  const runCreateUser = useServerFn(createUserAccount);
+  const runSetPassword = useServerFn(setUserPassword);
 
   const cargos = useQuery({
     queryKey: ["cargos"],
@@ -186,6 +199,62 @@ function Acessos() {
     onSuccess: () => {
       toast.success("Cargo removido");
       invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const saveCargo = useMutation({
+    mutationFn: async (id: string) => {
+      const draft = edits[id];
+      if (!draft) return;
+      const trimmed = draft.name.trim();
+      if (trimmed.length < 2) throw new Error("Informe o nome do cargo");
+      const { error } = await supabase
+        .from("cargos")
+        .update({ name: trimmed.slice(0, 60), description: draft.description.trim().slice(0, 200) })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Cargo atualizado");
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const createLogin = useMutation({
+    mutationFn: async () =>
+      runCreateUser({
+        data: {
+          email: newEmail.trim(),
+          password: newPassword,
+          fullName: newFullName.trim() || undefined,
+          cargoId: newCargo || undefined,
+          isAdmin: newAdmin,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Login criado com sucesso");
+      setNewEmail("");
+      setNewPassword("");
+      setNewFullName("");
+      setNewCargo("");
+      setNewAdmin(false);
+      queryClient.invalidateQueries({ queryKey: ["profiles"] });
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const changePassword = useMutation({
+    mutationFn: async () => {
+      if (!resetFor) throw new Error("Selecione o usuário");
+      return runSetPassword({ data: { userId: resetFor, password: resetPassword } });
+    },
+    onSuccess: () => {
+      toast.success("Senha alterada");
+      setResetPassword("");
+      setResetFor("");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -423,40 +492,72 @@ function Acessos() {
       ) : null}
 
       {allowed ? (
-        <>
-          <h2 className="mt-10 text-xl font-semibold">Permissões por cargo</h2>
-          <div className="mt-4 space-y-4">
-            {(cargos.data ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum cargo criado ainda.</p>
-            ) : null}
-            {(cargos.data ?? []).map((c) => (
-              <div key={c.id} className="surface p-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold">{c.name}</p>
-                    {c.description ? (
-                      <p className="text-xs text-muted-foreground">{c.description}</p>
-                    ) : null}
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={() => deleteCargo.mutate(c.id)}>
-                    <Trash2 className="mr-2 size-4" /> Excluir
-                  </Button>
-                </div>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {PERMISSIONS.map((p) => (
-                    <label key={p} className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={hasPerm(c.id, p)}
-                        onCheckedChange={(v) =>
-                          togglePerm.mutate({ cargoId: c.id, permission: p, on: v === true })
-                        }
-                      />
-                      {PERMISSION_LABELS[p]}
-                    </label>
-                  ))}
-                </div>
+      <>
+      <h2 className="mt-10 text-xl font-semibold">Permissões por cargo</h2>
+      <div className="mt-4 space-y-4">
+        {(cargos.data ?? []).length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum cargo criado ainda.</p>
+        ) : null}
+        {(cargos.data ?? []).map((c) => (
+          <div key={c.id} className="surface p-5">
+            <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+              <div className="space-y-2">
+                <Label>Nome do cargo</Label>
+                <Input
+                  value={edits[c.id]?.name ?? c.name}
+                  onChange={(e) =>
+                    setEdits((prev) => ({
+                      ...prev,
+                      [c.id]: {
+                        name: e.target.value,
+                        description: prev[c.id]?.description ?? c.description ?? "",
+                      },
+                    }))
+                  }
+                />
               </div>
-            ))}
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Input
+                  value={edits[c.id]?.description ?? c.description ?? ""}
+                  onChange={(e) =>
+                    setEdits((prev) => ({
+                      ...prev,
+                      [c.id]: {
+                        name: prev[c.id]?.name ?? c.name,
+                        description: e.target.value,
+                      },
+                    }))
+                  }
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => saveCargo.mutate(c.id)}
+                  disabled={saveCargo.isPending || !edits[c.id]}
+                >
+                  <Save className="mr-2 size-4" /> Salvar
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => deleteCargo.mutate(c.id)}>
+                  <Trash2 className="mr-2 size-4" /> Excluir
+                </Button>
+              </div>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {PERMISSIONS.map((p) => (
+                <label key={p} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={hasPerm(c.id, p)}
+                    onCheckedChange={(v) =>
+                      togglePerm.mutate({ cargoId: c.id, permission: p, on: v === true })
+                    }
+                  />
+                  {PERMISSION_LABELS[p]}
+                </label>
+              ))}
+            </div>
           </div>
         </>
       ) : null}
