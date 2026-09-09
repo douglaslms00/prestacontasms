@@ -357,16 +357,50 @@ function Acessos() {
         ) : null}
         {(cargos.data ?? []).map((c) => (
           <div key={c.id} className="surface p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="font-semibold">{c.name}</p>
-                {c.description ? (
-                  <p className="text-xs text-muted-foreground">{c.description}</p>
-                ) : null}
+            <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+              <div className="space-y-2">
+                <Label>Nome do cargo</Label>
+                <Input
+                  value={edits[c.id]?.name ?? c.name}
+                  onChange={(e) =>
+                    setEdits((prev) => ({
+                      ...prev,
+                      [c.id]: {
+                        name: e.target.value,
+                        description: prev[c.id]?.description ?? c.description ?? "",
+                      },
+                    }))
+                  }
+                />
               </div>
-              <Button variant="ghost" size="sm" onClick={() => deleteCargo.mutate(c.id)}>
-                <Trash2 className="mr-2 size-4" /> Excluir
-              </Button>
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Input
+                  value={edits[c.id]?.description ?? c.description ?? ""}
+                  onChange={(e) =>
+                    setEdits((prev) => ({
+                      ...prev,
+                      [c.id]: {
+                        name: prev[c.id]?.name ?? c.name,
+                        description: e.target.value,
+                      },
+                    }))
+                  }
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => saveCargo.mutate(c.id)}
+                  disabled={saveCargo.isPending || !edits[c.id]}
+                >
+                  <Save className="mr-2 size-4" /> Salvar
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => deleteCargo.mutate(c.id)}>
+                  <Trash2 className="mr-2 size-4" /> Excluir
+                </Button>
+              </div>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {PERMISSIONS.map((p) => (
