@@ -33,21 +33,41 @@ export function useNotifications(userId?: string) {
 
   useEffect(() => {
     if (!userId) return;
+
+    const refresh = () => {
+      void queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
+      void queryClient.invalidateQueries({ queryKey: ["advances"] });
+      void queryClient.invalidateQueries({ queryKey: ["topups"] });
+      void queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    };
+
     const channel = supabase
       .channel(`notifications-${userId}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
         (payload) => {
-          const n = payload.new as Notification;
-          const show = n.type === "error" ? toast.error : n.type === "success" ? toast.success : toast;
-          show(n.title, { description: n.body });
-          queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
-          queryClient.invalidateQueries({ queryKey: ["advances"] });
+          if (payload.eventType === "INSERT") {
+            const n = payload.new as Notification;
+            const show = n.type === "error" ? toast.error : n.type === "success" ? toast.success : toast;
+            show(n.title, { description: n.body });
+          }
+          refresh();
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") refresh();
+      });
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", refresh);
+
     return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", refresh);
       void supabase.removeChannel(channel);
     };
   }, [userId, queryClient]);
