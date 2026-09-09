@@ -3,7 +3,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -73,7 +72,7 @@ function PasswordRules() {
 function AuthPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [forgotPassword, setForgotPassword] = useState(false);
@@ -102,12 +101,29 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        navigate({ to: "/painel", replace: true });
+        // Se for e-mail, usa diretamente
+        if (looksLikeEmail(identifier)) {
+          const { error } = await supabase.auth.signInWithPassword({ email: identifier.trim().toLowerCase(), password });
+          if (error) throw error;
+          navigate({ to: "/painel", replace: true });
+        } else {
+          // Trata como CPF: normaliza e busca e-mail associado
+          const cpf = normalizeCpf(identifier);
+          if (cpf.length !== 11) {
+            throw new Error("CPF inválido.");
+          }
+          const email = await findEmailByCpf(cpf);
+          if (!email) {
+            throw new Error("Não encontramos uma conta vinculada a esse CPF.");
+          }
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          navigate({ to: "/painel", replace: true });
+        }
       } else {
+        // signup: mantemos comportamento por e-mail
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: identifier,
           password,
           options: {
             emailRedirectTo: window.location.origin,
@@ -125,36 +141,53 @@ function AuthPage() {
     }
   };
 
-  const google = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      toast.error("Falha ao entrar com Google");
-      return;
-    }
-    if (result.redirected) return;
-    navigate({ to: "/painel", replace: true });
-  };
-
   const solicitarRedefinicao = async () => {
-    const parsed = z.string().trim().email("Informe um e-mail válido").safeParse(email);
-    if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Informe um e-mail válido");
-      return;
-    }
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
-        redirectTo: `${window.location.origin}/auth?reset=1`,
-      });
-      if (error) throw error;
-      toast.success("Se houver uma conta com este e-mail, você receberá um link para redefinir a senha.");
-      setForgotPassword(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Não foi possível enviar o link de recuperação");
-    } finally {
-      setLoading(false);
+    // identifier pode ser CPF ou e-mail
+    if (looksLikeEmail(identifier)) {
+      const parsed = z.string().trim().email("Informe um e-mail válido").safeParse(identifier);
+      if (!parsed.success) {
+        toast.error(parsed.error.issues[0]?.message ?? "Informe um e-mail válido");
+        return;
+      }
+      setLoading(true);
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
+          redirectTo: `${window.location.origin}/auth?reset=1`,
+        });
+        if (error) throw error;
+        toast.success("Se houver uma conta com este e-mail, você receberá um link para redefinir a senha.");
+        setForgotPassword(false);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Não foi possível enviar o link de recuperação");
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Tratar como CPF: busca e-mail e solicita reset
+      const cpf = normalizeCpf(identifier);
+      if (cpf.length !== 11) {
+        toast.error("CPF inválido.");
+        return;
+      }
+      setLoading(true);
+      try {
+        const email = await findEmailByCpf(cpf);
+        if (!email) {
+          toast.success("Se houver uma conta vinculada a este CPF, será enviada uma instrução de recuperação."); // não vaza informação
+          setForgotPassword(false);
+          return;
+        }
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth?reset=1`,
+        });
+        if (error) throw error;
+        toast.success("Se houver uma conta com este e-mail, você receberá um link para redefinir a senha.");
+        setForgotPassword(false);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Não foi possível enviar o link de recuperação");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -214,9 +247,9 @@ function AuthPage() {
               <>
                 <div>
                   <h2 className="font-semibold">Recuperar acesso</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">Informe seu e-mail para receber o link de redefinição de senha.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Informe seu e-mail ou CPF para receber o link de redefinição de senha.</p>
                 </div>
-                <Field label="E-mail" value={email} onChange={setEmail} type="email" />
+                <Field label="CPF ou E-mail" value={identifier} onChange={setIdentifier} />
                 <Button className="w-full" disabled={loading} onClick={solicitarRedefinicao}>
                   {loading ? "Enviando..." : "Enviar link de recuperação"}
                 </Button>
@@ -251,7 +284,7 @@ function AuthPage() {
 
           <TabsContent value="signup" className="mt-6 space-y-4">
             <Field label="Nome completo" value={fullName} onChange={setFullName} />
-            <Field label="E-mail" value={email} onChange={setEmail} type="email" />
+            <Field label="E-mail" value={identifier} onChange={setIdentifier} type="email" />
             <Field label="Senha" value={password} onChange={setPassword} type="password" />
             <PasswordRules />
             <p className="sr-only">{PASSWORD_HINT}</p>
@@ -261,15 +294,6 @@ function AuthPage() {
           </TabsContent>
         </Tabs>
         )}
-
-        {!resetPassword && <>
-          <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="h-px flex-1 bg-border" /> ou <span className="h-px flex-1 bg-border" />
-          </div>
-          <Button variant="outline" className="w-full" onClick={google}>
-            Continuar com Google
-          </Button>
-        </>}
       </div>
     </main>
   );
@@ -317,3 +341,5 @@ function Field({
     </div>
   );
 }
+
+export default AuthPage;
