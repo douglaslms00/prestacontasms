@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { HardHat, Plus, RefreshCw, Shield, Trash2, UserPlus } from "lucide-react";
+import { HardHat, Plus, RefreshCw, Shield, Trash2, UserPlus, Lock, Eye, EyeOff } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { syncObras } from "@/lib/obras.functions";
+import { createUserLogin, resetUserPassword } from "@/lib/auth.functions";
 import { OBRAS_APP_URL } from "@/lib/obras";
 import {
   PERMISSIONS,
@@ -58,7 +59,24 @@ function Acessos() {
   const allowed = can("gerenciar_acessos");
   const canIntegrar = can("integrar_obras");
   const runSync = useServerFn(syncObras);
+  const createLogin = useServerFn(createUserLogin);
+  const resetPassword = useServerFn(resetUserPassword);
 
+  // Novo usuário
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserCargo, setNewUserCargo] = useState("");
+  const [newUserIsAdmin, setNewUserIsAdmin] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Reset senha
+  const [resetUserId, setResetUserId] = useState("");
+  const [resetNewPassword, setResetNewPassword] = useState("");
+  const [resetShowPassword, setResetShowPassword] = useState(false);
+  const [resetingUserId, setResetingUserId] = useState<string | null>(null);
+
+  // Cargo
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [pickUser, setPickUser] = useState("");
@@ -139,6 +157,7 @@ function Acessos() {
     queryClient.invalidateQueries({ queryKey: ["cargo-permissions"] });
     queryClient.invalidateQueries({ queryKey: ["user-cargos"] });
     queryClient.invalidateQueries({ queryKey: ["permissions"] });
+    queryClient.invalidateQueries({ queryKey: ["profiles"] });
   };
 
   const createCargo = useMutation({
@@ -216,6 +235,57 @@ function Acessos() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const createNewUser = useMutation({
+    mutationFn: async () => {
+      if (!newUserName.trim()) throw new Error("Informe o nome");
+      if (!newUserEmail.trim()) throw new Error("Informe o e-mail");
+      if (!newUserPassword.trim()) throw new Error("Informe a senha");
+      return createLogin({
+        fullName: newUserName,
+        email: newUserEmail,
+        password: newUserPassword,
+        cargoId: newUserCargo || undefined,
+        isAdmin: newUserIsAdmin,
+      });
+    },
+    onSuccess: (result) => {
+      if (result.ok) {
+        toast.success(result.message);
+        setNewUserName("");
+        setNewUserEmail("");
+        setNewUserPassword("");
+        setNewUserCargo("");
+        setNewUserIsAdmin(false);
+        invalidate();
+      } else {
+        toast.error(result.message);
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const doResetPassword = useMutation({
+    mutationFn: async () => {
+      if (!resetUserId) throw new Error("Selecione um usuário");
+      if (!resetNewPassword) throw new Error("Informe a nova senha");
+      return resetPassword({
+        userId: resetUserId,
+        newPassword: resetNewPassword,
+      });
+    },
+    onSuccess: (result) => {
+      if (result.ok) {
+        toast.success(result.message);
+        setResetUserId("");
+        setResetNewPassword("");
+        setResetingUserId(null);
+      } else {
+        toast.error(result.message);
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   if (isLoading) {
     return (
       <AppShell subtitle="Cargos e permissões">
@@ -253,69 +323,142 @@ function Acessos() {
       </p>
 
       {allowed ? (
-      <div className="surface mt-6 space-y-4 p-6">
-        <h2 className="font-semibold">Novo cargo</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Nome</Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Financeiro"
-            />
+        <>
+          {/* Criar novo login */}
+          <div className="surface mt-6 space-y-4 p-6">
+            <h2 className="flex items-center gap-2 font-semibold">
+              <UserPlus className="size-4" /> Criar login de acesso
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Nome completo</Label>
+                <Input
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                  placeholder="João Silva"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>E-mail</Label>
+                <Input
+                  type="email"
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  placeholder="joao@example.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Senha (forte)</Label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    value={newUserPassword}
+                    onChange={(e) => setNewUserPassword(e.target.value)}
+                    placeholder="Mín. 8 caracteres, maiúsc, minúsc, número e caractere especial"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Cargo (opcional)</Label>
+                <Select value={newUserCargo} onValueChange={setNewUserCargo}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cargo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(cargos.data ?? []).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={newUserIsAdmin}
+                onCheckedChange={(v) => setNewUserIsAdmin(v === true)}
+              />
+              Marcar como administrador
+            </label>
+            <Button onClick={() => createNewUser.mutate()} disabled={createNewUser.isPending}>
+              <Plus className="mr-2 size-4" /> Criar usuário
+            </Button>
           </div>
-          <div className="space-y-2">
-            <Label>Descrição</Label>
-            <Input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Responsável por liberar verbas"
-            />
-          </div>
-        </div>
-        <Button onClick={() => createCargo.mutate()} disabled={createCargo.isPending}>
-          <Plus className="mr-2 size-4" /> Criar cargo
-        </Button>
-      </div>
+        </>
       ) : null}
 
       {allowed ? (
-      <>
-      <h2 className="mt-10 text-xl font-semibold">Permissões por cargo</h2>
-      <div className="mt-4 space-y-4">
-        {(cargos.data ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhum cargo criado ainda.</p>
-        ) : null}
-        {(cargos.data ?? []).map((c) => (
-          <div key={c.id} className="surface p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="font-semibold">{c.name}</p>
-                {c.description ? (
-                  <p className="text-xs text-muted-foreground">{c.description}</p>
-                ) : null}
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => deleteCargo.mutate(c.id)}>
-                <Trash2 className="mr-2 size-4" /> Excluir
-              </Button>
+        <div className="surface mt-6 space-y-4 p-6">
+          <h2 className="font-semibold">Novo cargo</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Financeiro"
+              />
             </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {PERMISSIONS.map((p) => (
-                <label key={p} className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={hasPerm(c.id, p)}
-                    onCheckedChange={(v) =>
-                      togglePerm.mutate({ cargoId: c.id, permission: p, on: v === true })
-                    }
-                  />
-                  {PERMISSION_LABELS[p]}
-                </label>
-              ))}
+            <div className="space-y-2">
+              <Label>Descrição</Label>
+              <Input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Responsável por liberar verbas"
+              />
             </div>
           </div>
-        ))}
-      </div>
-      </>
+          <Button onClick={() => createCargo.mutate()} disabled={createCargo.isPending}>
+            <Plus className="mr-2 size-4" /> Criar cargo
+          </Button>
+        </div>
+      ) : null}
+
+      {allowed ? (
+        <>
+          <h2 className="mt-10 text-xl font-semibold">Permissões por cargo</h2>
+          <div className="mt-4 space-y-4">
+            {(cargos.data ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum cargo criado ainda.</p>
+            ) : null}
+            {(cargos.data ?? []).map((c) => (
+              <div key={c.id} className="surface p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">{c.name}</p>
+                    {c.description ? (
+                      <p className="text-xs text-muted-foreground">{c.description}</p>
+                    ) : null}
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => deleteCargo.mutate(c.id)}>
+                    <Trash2 className="mr-2 size-4" /> Excluir
+                  </Button>
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {PERMISSIONS.map((p) => (
+                    <label key={p} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={hasPerm(c.id, p)}
+                        onCheckedChange={(v) =>
+                          togglePerm.mutate({ cargoId: c.id, permission: p, on: v === true })
+                        }
+                      />
+                      {PERMISSION_LABELS[p]}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       ) : null}
 
       {canIntegrar ? (
@@ -359,73 +502,123 @@ function Acessos() {
       ) : null}
 
       {allowed ? (
-      <>
-      <h2 className="mt-10 text-xl font-semibold">Usuários</h2>
-      <div className="surface mt-4 space-y-4 p-5">
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Select value={pickUser} onValueChange={setPickUser}>
-            <SelectTrigger>
-              <SelectValue placeholder="Usuário" />
-            </SelectTrigger>
-            <SelectContent>
-              {(people.data ?? []).map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.full_name || p.email || p.id}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={pickCargo} onValueChange={setPickCargo}>
-            <SelectTrigger>
-              <SelectValue placeholder="Cargo" />
-            </SelectTrigger>
-            <SelectContent>
-              {(cargos.data ?? []).map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button onClick={() => assign.mutate()} disabled={assign.isPending}>
-            <UserPlus className="mr-2 size-4" /> Atribuir cargo
-          </Button>
-        </div>
-      </div>
-
-      <div className="mt-4 space-y-3">
-        {(people.data ?? []).map((p) => {
-          const mine = (assignments.data ?? []).filter((a) => a.user_id === p.id);
-          return (
-            <div
-              key={p.id}
-              className="surface flex flex-wrap items-center justify-between gap-3 p-4"
-            >
-              <div>
-                <p className="font-medium">{p.full_name || p.email || p.id}</p>
-                <p className="text-xs text-muted-foreground">{p.email}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {mine.length === 0 ? (
-                  <span className="text-xs text-muted-foreground">Sem cargo</span>
-                ) : null}
-                {mine.map((a) => (
-                  <Badge
-                    key={a.id}
-                    variant="secondary"
-                    className="cursor-pointer"
-                    onClick={() => unassign.mutate(a.id)}
-                    title="Clique para remover"
-                  >
-                    {cargoName(a.cargo_id)} ✕
-                  </Badge>
-                ))}
-              </div>
+        <>
+          <h2 className="mt-10 text-xl font-semibold">Usuários</h2>
+          <div className="surface mt-4 space-y-4 p-5">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Select value={pickUser} onValueChange={setPickUser}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Usuário" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(people.data ?? []).map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.full_name || p.email || p.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={pickCargo} onValueChange={setPickCargo}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Cargo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(cargos.data ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={() => assign.mutate()} disabled={assign.isPending}>
+                <UserPlus className="mr-2 size-4" /> Atribuir cargo
+              </Button>
             </div>
-          );
-        })}
-      </div>
-      </>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {(people.data ?? []).map((p) => {
+              const mine = (assignments.data ?? []).filter((a) => a.user_id === p.id);
+              const isResettingThis = resetingUserId === p.id;
+              return (
+                <div
+                  key={p.id}
+                  className="surface flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="font-medium">{p.full_name || p.email || p.id}</p>
+                    <p className="text-xs text-muted-foreground">{p.email}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {mine.length === 0 ? (
+                      <span className="text-xs text-muted-foreground">Sem cargo</span>
+                    ) : null}
+                    {mine.map((a) => (
+                      <Badge
+                        key={a.id}
+                        variant="secondary"
+                        className="cursor-pointer"
+                        onClick={() => unassign.mutate(a.id)}
+                        title="Clique para remover"
+                      >
+                        {cargoName(a.cargo_id)} ✕
+                      </Badge>
+                    ))}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setResetingUserId(isResettingThis ? null : p.id)}
+                      title="Redefinir senha"
+                    >
+                      <Lock className="size-4" />
+                    </Button>
+                  </div>
+
+                  {/* Reset senha inline */}
+                  {isResettingThis ? (
+                    <div className="col-span-full mt-2 flex flex-col gap-3 border-t pt-3 sm:flex-row">
+                      <div className="relative flex-1">
+                        <Input
+                          type={resetShowPassword ? "text" : "password"}
+                          value={resetNewPassword}
+                          onChange={(e) => setResetNewPassword(e.target.value)}
+                          placeholder="Nova senha (8+ caracteres, maiúsc, minúsc, número, especial)"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setResetShowPassword(!resetShowPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {resetShowPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        </button>
+                      </div>
+                      <Button
+                        onClick={() => {
+                          setResetUserId(p.id);
+                          doResetPassword.mutate();
+                        }}
+                        disabled={doResetPassword.isPending || !resetNewPassword}
+                        size="sm"
+                      >
+                        {doResetPassword.isPending ? "Alterando..." : "Alterar senha"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setResetingUserId(null);
+                          setResetNewPassword("");
+                        }}
+                        size="sm"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </>
       ) : null}
     </AppShell>
   );
