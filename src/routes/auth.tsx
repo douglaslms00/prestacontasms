@@ -3,7 +3,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -132,18 +131,6 @@ function AuthPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const google = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      toast.error("Falha ao entrar com Google");
-      return;
-    }
-    if (result.redirected) return;
-    navigate({ to: "/painel", replace: true });
   };
 
   const solicitarRedefinicao = async () => {
@@ -285,15 +272,6 @@ function AuthPage() {
           </TabsContent>
         </Tabs>
         )}
-
-        {!resetPassword && <>
-          <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="h-px flex-1 bg-border" /> ou <span className="h-px flex-1 bg-border" />
-          </div>
-          <Button variant="outline" className="w-full" onClick={google}>
-            Continuar com Google
-          </Button>
-        </>}
       </div>
     </main>
   );
