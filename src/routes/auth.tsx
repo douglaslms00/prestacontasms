@@ -259,7 +259,7 @@ function AuthPage() {
               </>
             ) : (
               <>
-                <Field label="E-mail" value={email} onChange={setEmail} type="email" />
+                <Field label="E-mail" value={identifier} onChange={setIdentifier} type="email" />
                 <Field
                   label="Senha"
                   value={password}
