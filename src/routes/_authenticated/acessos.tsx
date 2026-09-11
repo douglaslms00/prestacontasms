@@ -222,42 +222,8 @@ function Acessos() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const createLogin = useMutation({
-    mutationFn: async () =>
-      runCreateUser({
-        data: {
-          email: newEmail.trim(),
-          password: newPassword,
-          fullName: newFullName.trim() || undefined,
-          cargoId: newCargo || undefined,
-          isAdmin: newAdmin,
-        },
-      }),
-    onSuccess: () => {
-      toast.success("Login criado com sucesso");
-      setNewEmail("");
-      setNewPassword("");
-      setNewFullName("");
-      setNewCargo("");
-      setNewAdmin(false);
-      queryClient.invalidateQueries({ queryKey: ["profiles"] });
-      invalidate();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
-  const changePassword = useMutation({
-    mutationFn: async () => {
-      if (!resetFor) throw new Error("Selecione o usuário");
-      return runSetPassword({ data: { userId: resetFor, password: resetPassword } });
-    },
-    onSuccess: () => {
-      toast.success("Senha alterada");
-      setResetPassword("");
-      setResetFor("");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+
 
   const togglePerm = useMutation({
     mutationFn: async (input: { cargoId: string; permission: AppPermission; on: boolean }) => {
