@@ -84,13 +84,8 @@ function Acessos() {
   const [pickCargo, setPickCargo] = useState("");
   const [edits, setEdits] = useState<Record<string, { name: string; description: string }>>({});
 
-  const [newEmail, setNewEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [newFullName, setNewFullName] = useState("");
-  const [newCargo, setNewCargo] = useState("");
-  const [newAdmin, setNewAdmin] = useState(false);
-  const [resetFor, setResetFor] = useState("");
-  const [resetPassword, setResetPassword] = useState("");
+
+
 
   const runCreateUser = useServerFn(createUserAccount);
   const runSetPassword = useServerFn(setUserPassword);
