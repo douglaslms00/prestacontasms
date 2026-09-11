@@ -697,10 +697,8 @@ function Acessos() {
                         </button>
                       </div>
                       <Button
-                        onClick={() => {
-                          setResetUserId(p.id);
-                          doResetPassword.mutate();
-                        }}
+                        onClick={() => doResetPassword.mutate(p.id)}
+
                         disabled={doResetPassword.isPending || !resetNewPassword}
                         size="sm"
                       >
