@@ -309,51 +309,41 @@ function Acessos() {
       if (!newUserName.trim()) throw new Error("Informe o nome");
       if (!newUserEmail.trim()) throw new Error("Informe o e-mail");
       if (!newUserPassword.trim()) throw new Error("Informe a senha");
-      return createLogin({
-        fullName: newUserName,
-        email: newUserEmail,
-        password: newUserPassword,
-        cargoId: newUserCargo || undefined,
-        isAdmin: newUserIsAdmin,
+      return runCreateUser({
+        data: {
+          fullName: newUserName.trim(),
+          email: newUserEmail.trim(),
+          password: newUserPassword,
+          cargoId: newUserCargo || undefined,
+          isAdmin: newUserIsAdmin,
+        },
       });
     },
-    onSuccess: (result) => {
-      if (result.ok) {
-        toast.success(result.message);
-        setNewUserName("");
-        setNewUserEmail("");
-        setNewUserPassword("");
-        setNewUserCargo("");
-        setNewUserIsAdmin(false);
-        invalidate();
-      } else {
-        toast.error(result.message);
-      }
+    onSuccess: () => {
+      toast.success("Login criado com sucesso");
+      setNewUserName("");
+      setNewUserEmail("");
+      setNewUserPassword("");
+      setNewUserCargo("");
+      setNewUserIsAdmin(false);
+      invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const doResetPassword = useMutation({
-    mutationFn: async () => {
-      if (!resetUserId) throw new Error("Selecione um usuário");
+    mutationFn: async (userId: string) => {
       if (!resetNewPassword) throw new Error("Informe a nova senha");
-      return resetPassword({
-        userId: resetUserId,
-        newPassword: resetNewPassword,
-      });
+      return runSetPassword({ data: { userId, password: resetNewPassword } });
     },
-    onSuccess: (result) => {
-      if (result.ok) {
-        toast.success(result.message);
-        setResetUserId("");
-        setResetNewPassword("");
-        setResetingUserId(null);
-      } else {
-        toast.error(result.message);
-      }
+    onSuccess: () => {
+      toast.success("Senha alterada");
+      setResetNewPassword("");
+      setResetingUserId(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   if (isLoading) {
     return (
