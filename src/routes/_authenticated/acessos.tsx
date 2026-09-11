@@ -60,8 +60,8 @@ function Acessos() {
   const allowed = can("gerenciar_acessos");
   const canIntegrar = can("integrar_obras");
   const runSync = useServerFn(syncObras);
-  const createLogin = useServerFn(createUserLogin);
-  const resetPassword = useServerFn(resetUserPassword);
+
+
 
   // Novo usuário
   const [newUserName, setNewUserName] = useState("");
