@@ -93,7 +93,11 @@ function AuthPage() {
   }, [navigate]);
 
   const submit = async (mode: "login" | "signup") => {
-    const parsed = (mode === "signup" ? signupSchema : loginSchema).safeParse({ email, password, fullName });
+    const parsed = (mode === "signup" ? signupSchema : loginSchema).safeParse({
+      email: identifier,
+      password,
+      fullName,
+    });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
       return;
@@ -101,29 +105,15 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "login") {
-        // Se for e-mail, usa diretamente
-        if (looksLikeEmail(identifier)) {
-          const { error } = await supabase.auth.signInWithPassword({ email: identifier.trim().toLowerCase(), password });
-          if (error) throw error;
-          navigate({ to: "/painel", replace: true });
-        } else {
-          // Trata como CPF: normaliza e busca e-mail associado
-          const cpf = normalizeCpf(identifier);
-          if (cpf.length !== 11) {
-            throw new Error("CPF inválido.");
-          }
-          const email = await findEmailByCpf(cpf);
-          if (!email) {
-            throw new Error("Não encontramos uma conta vinculada a esse CPF.");
-          }
-          const { error } = await supabase.auth.signInWithPassword({ email, password });
-          if (error) throw error;
-          navigate({ to: "/painel", replace: true });
-        }
+        const { error } = await supabase.auth.signInWithPassword({
+          email: parsed.data.email.toLowerCase(),
+          password,
+        });
+        if (error) throw error;
+        navigate({ to: "/painel", replace: true });
       } else {
-        // signup: mantemos comportamento por e-mail
         const { data, error } = await supabase.auth.signUp({
-          email: identifier,
+          email: parsed.data.email.toLowerCase(),
           password,
           options: {
             emailRedirectTo: window.location.origin,
@@ -142,54 +132,30 @@ function AuthPage() {
   };
 
   const solicitarRedefinicao = async () => {
-    // identifier pode ser CPF ou e-mail
-    if (looksLikeEmail(identifier)) {
-      const parsed = z.string().trim().email("Informe um e-mail válido").safeParse(identifier);
-      if (!parsed.success) {
-        toast.error(parsed.error.issues[0]?.message ?? "Informe um e-mail válido");
-        return;
-      }
-      setLoading(true);
-      try {
-        const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
-          redirectTo: `${window.location.origin}/auth?reset=1`,
-        });
-        if (error) throw error;
-        toast.success("Se houver uma conta com este e-mail, você receberá um link para redefinir a senha.");
-        setForgotPassword(false);
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Não foi possível enviar o link de recuperação");
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // Tratar como CPF: busca e-mail e solicita reset
-      const cpf = normalizeCpf(identifier);
-      if (cpf.length !== 11) {
-        toast.error("CPF inválido.");
-        return;
-      }
-      setLoading(true);
-      try {
-        const email = await findEmailByCpf(cpf);
-        if (!email) {
-          toast.success("Se houver uma conta vinculada a este CPF, será enviada uma instrução de recuperação."); // não vaza informação
-          setForgotPassword(false);
-          return;
-        }
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth?reset=1`,
-        });
-        if (error) throw error;
-        toast.success("Se houver uma conta com este e-mail, você receberá um link para redefinir a senha.");
-        setForgotPassword(false);
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Não foi possível enviar o link de recuperação");
-      } finally {
-        setLoading(false);
-      }
+    const parsed = z.string().trim().email("Informe um e-mail válido").safeParse(identifier);
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Informe um e-mail válido");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.toLowerCase(), {
+        redirectTo: `${window.location.origin}/auth?reset=1`,
+      });
+      if (error) throw error;
+      toast.success(
+        "Se houver uma conta com este e-mail, você receberá um link para redefinir a senha.",
+      );
+      setForgotPassword(false);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Não foi possível enviar o link de recuperação",
+      );
+    } finally {
+      setLoading(false);
     }
   };
+
 
   const salvarNovaSenha = async () => {
     const parsed = strongPassword.safeParse(newPassword);
