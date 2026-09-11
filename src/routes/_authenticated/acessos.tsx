@@ -2,8 +2,19 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { HardHat, KeyRound, Plus, RefreshCw, Save, Shield, Trash2, UserPlus } from "lucide-react";
-import { HardHat, Plus, RefreshCw, Shield, Trash2, UserPlus, Lock, Eye, EyeOff } from "lucide-react";
+import {
+  HardHat,
+  Plus,
+  RefreshCw,
+  Save,
+  Shield,
+  Trash2,
+  UserPlus,
+  Lock,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,8 +71,8 @@ function Acessos() {
   const allowed = can("gerenciar_acessos");
   const canIntegrar = can("integrar_obras");
   const runSync = useServerFn(syncObras);
-  const createLogin = useServerFn(createUserLogin);
-  const resetPassword = useServerFn(resetUserPassword);
+
+
 
   // Novo usuário
   const [newUserName, setNewUserName] = useState("");
@@ -84,13 +95,8 @@ function Acessos() {
   const [pickCargo, setPickCargo] = useState("");
   const [edits, setEdits] = useState<Record<string, { name: string; description: string }>>({});
 
-  const [newEmail, setNewEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [newFullName, setNewFullName] = useState("");
-  const [newCargo, setNewCargo] = useState("");
-  const [newAdmin, setNewAdmin] = useState(false);
-  const [resetFor, setResetFor] = useState("");
-  const [resetPassword, setResetPassword] = useState("");
+
+
 
   const runCreateUser = useServerFn(createUserAccount);
   const runSetPassword = useServerFn(setUserPassword);
@@ -222,42 +228,8 @@ function Acessos() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const createLogin = useMutation({
-    mutationFn: async () =>
-      runCreateUser({
-        data: {
-          email: newEmail.trim(),
-          password: newPassword,
-          fullName: newFullName.trim() || undefined,
-          cargoId: newCargo || undefined,
-          isAdmin: newAdmin,
-        },
-      }),
-    onSuccess: () => {
-      toast.success("Login criado com sucesso");
-      setNewEmail("");
-      setNewPassword("");
-      setNewFullName("");
-      setNewCargo("");
-      setNewAdmin(false);
-      queryClient.invalidateQueries({ queryKey: ["profiles"] });
-      invalidate();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
-  const changePassword = useMutation({
-    mutationFn: async () => {
-      if (!resetFor) throw new Error("Selecione o usuário");
-      return runSetPassword({ data: { userId: resetFor, password: resetPassword } });
-    },
-    onSuccess: () => {
-      toast.success("Senha alterada");
-      setResetPassword("");
-      setResetFor("");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+
 
   const togglePerm = useMutation({
     mutationFn: async (input: { cargoId: string; permission: AppPermission; on: boolean }) => {
@@ -309,51 +281,41 @@ function Acessos() {
       if (!newUserName.trim()) throw new Error("Informe o nome");
       if (!newUserEmail.trim()) throw new Error("Informe o e-mail");
       if (!newUserPassword.trim()) throw new Error("Informe a senha");
-      return createLogin({
-        fullName: newUserName,
-        email: newUserEmail,
-        password: newUserPassword,
-        cargoId: newUserCargo || undefined,
-        isAdmin: newUserIsAdmin,
+      return runCreateUser({
+        data: {
+          fullName: newUserName.trim(),
+          email: newUserEmail.trim(),
+          password: newUserPassword,
+          cargoId: newUserCargo || undefined,
+          isAdmin: newUserIsAdmin,
+        },
       });
     },
-    onSuccess: (result) => {
-      if (result.ok) {
-        toast.success(result.message);
-        setNewUserName("");
-        setNewUserEmail("");
-        setNewUserPassword("");
-        setNewUserCargo("");
-        setNewUserIsAdmin(false);
-        invalidate();
-      } else {
-        toast.error(result.message);
-      }
+    onSuccess: () => {
+      toast.success("Login criado com sucesso");
+      setNewUserName("");
+      setNewUserEmail("");
+      setNewUserPassword("");
+      setNewUserCargo("");
+      setNewUserIsAdmin(false);
+      invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const doResetPassword = useMutation({
-    mutationFn: async () => {
-      if (!resetUserId) throw new Error("Selecione um usuário");
+    mutationFn: async (userId: string) => {
       if (!resetNewPassword) throw new Error("Informe a nova senha");
-      return resetPassword({
-        userId: resetUserId,
-        newPassword: resetNewPassword,
-      });
+      return runSetPassword({ data: { userId, password: resetNewPassword } });
     },
-    onSuccess: (result) => {
-      if (result.ok) {
-        toast.success(result.message);
-        setResetUserId("");
-        setResetNewPassword("");
-        setResetingUserId(null);
-      } else {
-        toast.error(result.message);
-      }
+    onSuccess: () => {
+      toast.success("Senha alterada");
+      setResetNewPassword("");
+      setResetingUserId(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   if (isLoading) {
     return (
@@ -559,7 +521,10 @@ function Acessos() {
               ))}
             </div>
           </div>
-        </>
+        ))}
+      </div>
+      </>
+
       ) : null}
 
       {canIntegrar ? (
@@ -694,10 +659,8 @@ function Acessos() {
                         </button>
                       </div>
                       <Button
-                        onClick={() => {
-                          setResetUserId(p.id);
-                          doResetPassword.mutate();
-                        }}
+                        onClick={() => doResetPassword.mutate(p.id)}
+
                         disabled={doResetPassword.isPending || !resetNewPassword}
                         size="sm"
                       >
