@@ -213,9 +213,10 @@ function AuthPage() {
               <>
                 <div>
                   <h2 className="font-semibold">Recuperar acesso</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">Informe seu e-mail ou CPF para receber o link de redefinição de senha.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Informe seu e-mail para receber o link de redefinição de senha.</p>
                 </div>
-                <Field label="CPF ou E-mail" value={identifier} onChange={setIdentifier} />
+                <Field label="E-mail" value={identifier} onChange={setIdentifier} type="email" />
+
                 <Button className="w-full" disabled={loading} onClick={solicitarRedefinicao}>
                   {loading ? "Enviando..." : "Enviar link de recuperação"}
                 </Button>
