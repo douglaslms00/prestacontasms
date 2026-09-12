@@ -91,3 +91,43 @@ export const setUserPassword = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+
+export const listUserAccounts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertCanManage(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    if (error) throw new Error(error.message);
+
+    return (data.users ?? []).map((u) => {
+      const banned = (u as unknown as { banned_until?: string | null }).banned_until;
+      const isBanned = !!banned && new Date(banned).getTime() > Date.now();
+      return {
+        id: u.id,
+        email: u.email ?? "",
+        confirmed: !!u.email_confirmed_at,
+        lastSignInAt: u.last_sign_in_at ?? null,
+        active: !isBanned && !!u.email_confirmed_at,
+        banned: isBanned,
+      };
+    });
+  });
+
+export const setUserActive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ userId: z.string().uuid(), active: z.boolean() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertCanManage(context.supabase, context.userId);
+    if (data.userId === context.userId) throw new Error("Você não pode desativar sua própria conta.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+      ban_duration: data.active ? "none" : "876000h",
+    } as never);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
