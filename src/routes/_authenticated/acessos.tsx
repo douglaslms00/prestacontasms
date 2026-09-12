@@ -200,6 +200,7 @@ function Acessos() {
     queryClient.invalidateQueries({ queryKey: ["user-cargos"] });
     queryClient.invalidateQueries({ queryKey: ["permissions"] });
     queryClient.invalidateQueries({ queryKey: ["profiles"] });
+    queryClient.invalidateQueries({ queryKey: ["user-accounts"] });
   };
 
   const createCargo = useMutation({
