@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAcessosRouteImport } from './routes/_authenticated/acessos'
+import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedGestaoRouteImport } from './routes/_authenticated/gestao'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
@@ -36,6 +37,11 @@ const AuthRoute = AuthRouteImport.update({
 const AuthenticatedAcessosRoute = AuthenticatedAcessosRouteImport.update({
   id: '/acessos',
   path: '/acessos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAprovacoesRoute = AuthenticatedAprovacoesRouteImport.update({
+  id: '/aprovacoes',
+  path: '/aprovacoes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedGestaoRoute = AuthenticatedGestaoRouteImport.update({
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/acessos': typeof AuthenticatedAcessosRoute
+  '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/gestao': typeof AuthenticatedGestaoRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/perfil': typeof AuthenticatedPerfilRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/acessos': typeof AuthenticatedAcessosRoute
+  '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/gestao': typeof AuthenticatedGestaoRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/perfil': typeof AuthenticatedPerfilRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/acessos': typeof AuthenticatedAcessosRoute
+  '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/_authenticated/gestao': typeof AuthenticatedGestaoRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
@@ -103,6 +112,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/acessos'
+    | '/aprovacoes'
     | '/gestao'
     | '/painel'
     | '/perfil'
@@ -113,6 +123,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/acessos'
+    | '/aprovacoes'
     | '/gestao'
     | '/painel'
     | '/perfil'
@@ -124,6 +135,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/acessos'
+    | '/_authenticated/aprovacoes'
     | '/_authenticated/gestao'
     | '/_authenticated/painel'
     | '/_authenticated/perfil'
@@ -167,6 +179,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAcessosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/aprovacoes': {
+      id: '/_authenticated/aprovacoes'
+      path: '/aprovacoes'
+      fullPath: '/aprovacoes'
+      preLoaderRoute: typeof AuthenticatedAprovacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/gestao': {
       id: '/_authenticated/gestao'
       path: '/gestao'
@@ -207,6 +226,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcessosRoute: typeof AuthenticatedAcessosRoute
+  AuthenticatedAprovacoesRoute: typeof AuthenticatedAprovacoesRoute
   AuthenticatedGestaoRoute: typeof AuthenticatedGestaoRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
@@ -216,6 +236,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAcessosRoute: AuthenticatedAcessosRoute,
+  AuthenticatedAprovacoesRoute: AuthenticatedAprovacoesRoute,
   AuthenticatedGestaoRoute: AuthenticatedGestaoRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,

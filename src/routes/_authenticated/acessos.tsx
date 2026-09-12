@@ -31,7 +31,12 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { syncObras } from "@/lib/obras.functions";
-import { createUserAccount, setUserPassword } from "@/lib/admin-users.functions";
+import {
+  createUserAccount,
+  setUserPassword,
+  listUserAccounts,
+  setUserActive,
+} from "@/lib/admin-users.functions";
 import { OBRAS_APP_URL } from "@/lib/obras";
 import {
   PERMISSIONS,
@@ -100,6 +105,24 @@ function Acessos() {
 
   const runCreateUser = useServerFn(createUserAccount);
   const runSetPassword = useServerFn(setUserPassword);
+  const runListAccounts = useServerFn(listUserAccounts);
+  const runSetActive = useServerFn(setUserActive);
+
+  const accounts = useQuery({
+    queryKey: ["user-accounts"],
+    enabled: allowed,
+    queryFn: async () => runListAccounts({}),
+  });
+
+  const toggleActive = useMutation({
+    mutationFn: async (input: { userId: string; active: boolean }) =>
+      runSetActive({ data: input }),
+    onSuccess: (_r, input) => {
+      toast.success(input.active ? "Usuário ativado" : "Usuário desativado");
+      queryClient.invalidateQueries({ queryKey: ["user-accounts"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const cargos = useQuery({
     queryKey: ["cargos"],
