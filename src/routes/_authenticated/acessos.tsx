@@ -31,7 +31,12 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { syncObras } from "@/lib/obras.functions";
-import { createUserAccount, setUserPassword } from "@/lib/admin-users.functions";
+import {
+  createUserAccount,
+  setUserPassword,
+  listUserAccounts,
+  setUserActive,
+} from "@/lib/admin-users.functions";
 import { OBRAS_APP_URL } from "@/lib/obras";
 import {
   PERMISSIONS,
@@ -100,6 +105,24 @@ function Acessos() {
 
   const runCreateUser = useServerFn(createUserAccount);
   const runSetPassword = useServerFn(setUserPassword);
+  const runListAccounts = useServerFn(listUserAccounts);
+  const runSetActive = useServerFn(setUserActive);
+
+  const accounts = useQuery({
+    queryKey: ["user-accounts"],
+    enabled: allowed,
+    queryFn: async () => runListAccounts({}),
+  });
+
+  const toggleActive = useMutation({
+    mutationFn: async (input: { userId: string; active: boolean }) =>
+      runSetActive({ data: input }),
+    onSuccess: (_r, input) => {
+      toast.success(input.active ? "Usuário ativado" : "Usuário desativado");
+      queryClient.invalidateQueries({ queryKey: ["user-accounts"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const cargos = useQuery({
     queryKey: ["cargos"],
@@ -177,6 +200,7 @@ function Acessos() {
     queryClient.invalidateQueries({ queryKey: ["user-cargos"] });
     queryClient.invalidateQueries({ queryKey: ["permissions"] });
     queryClient.invalidateQueries({ queryKey: ["profiles"] });
+    queryClient.invalidateQueries({ queryKey: ["user-accounts"] });
   };
 
   const createCargo = useMutation({
@@ -606,6 +630,8 @@ function Acessos() {
             {(people.data ?? []).map((p) => {
               const mine = (assignments.data ?? []).filter((a) => a.user_id === p.id);
               const isResettingThis = resetingUserId === p.id;
+              const acc = (accounts.data ?? []).find((a) => a.id === p.id);
+              const isActive = acc?.active ?? true;
               return (
                 <div
                   key={p.id}
@@ -614,8 +640,26 @@ function Acessos() {
                   <div>
                     <p className="font-medium">{p.full_name || p.email || p.id}</p>
                     <p className="text-xs text-muted-foreground">{p.email}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {acc?.lastSignInAt
+                        ? `Último acesso: ${new Date(acc.lastSignInAt).toLocaleString("pt-BR")}`
+                        : "Nunca acessou"}
+                    </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={isActive ? "default" : "destructive"}>
+                      {isActive ? "Ativo" : "Inativo"}
+                    </Badge>
+                    {p.id !== user?.id ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={toggleActive.isPending}
+                        onClick={() => toggleActive.mutate({ userId: p.id, active: !isActive })}
+                      >
+                        {isActive ? "Desativar" : "Ativar"}
+                      </Button>
+                    ) : null}
                     {mine.length === 0 ? (
                       <span className="text-xs text-muted-foreground">Sem cargo</span>
                     ) : null}

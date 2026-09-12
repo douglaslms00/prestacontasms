@@ -1,7 +1,7 @@
 import { ReactNode, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart3, HardHat, LayoutDashboard, LogOut, Menu, Receipt, Shield, UserCog } from "lucide-react";
+import { BarChart3, ClipboardCheck, HardHat, LayoutDashboard, LogOut, Menu, Receipt, Shield, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -33,6 +33,7 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
   };
 
   const links = [
+    { to: "/aprovacoes", label: "Aprovações", icon: ClipboardCheck },
     { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
     { to: "/gestao", label: "Gestão", icon: LayoutDashboard },
     { to: "/acessos", label: "Acesso", icon: Shield },
