@@ -629,6 +629,8 @@ function Acessos() {
             {(people.data ?? []).map((p) => {
               const mine = (assignments.data ?? []).filter((a) => a.user_id === p.id);
               const isResettingThis = resetingUserId === p.id;
+              const acc = (accounts.data ?? []).find((a) => a.id === p.id);
+              const isActive = acc?.active ?? true;
               return (
                 <div
                   key={p.id}
@@ -637,8 +639,26 @@ function Acessos() {
                   <div>
                     <p className="font-medium">{p.full_name || p.email || p.id}</p>
                     <p className="text-xs text-muted-foreground">{p.email}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {acc?.lastSignInAt
+                        ? `Último acesso: ${new Date(acc.lastSignInAt).toLocaleString("pt-BR")}`
+                        : "Nunca acessou"}
+                    </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={isActive ? "default" : "destructive"}>
+                      {isActive ? "Ativo" : "Inativo"}
+                    </Badge>
+                    {p.id !== user?.id ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={toggleActive.isPending}
+                        onClick={() => toggleActive.mutate({ userId: p.id, active: !isActive })}
+                      >
+                        {isActive ? "Desativar" : "Ativar"}
+                      </Button>
+                    ) : null}
                     {mine.length === 0 ? (
                       <span className="text-xs text-muted-foreground">Sem cargo</span>
                     ) : null}
