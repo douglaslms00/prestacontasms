@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePermissions } from "@/hooks/useAuth";
+import { PwaInstallButton } from "@/components/PwaInstallButton";
 import { brl, dateBR, statusLabel } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/painel")({
@@ -163,8 +164,12 @@ function Painel() {
         />
       </div>
 
+      <div className="mt-6 flex justify-center sm:justify-start">
+        <PwaInstallButton variant="outline" />
+      </div>
+
       {canCreate ? (
-        <div className="mt-10">
+        <div className="mt-6">
           {open ? (
             <NewAdvanceForm
               people={people.data ?? []}
