@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
@@ -42,16 +41,18 @@ const strongPassword = z
   .regex(/[0-9]/, "A senha precisa conter ao menos um número")
   .regex(/[^A-Za-z0-9]/, "A senha precisa conter ao menos um caractere especial");
 
+const strongPassword = z
+  .string()
+  .min(8, "A senha precisa ter no mínimo 8 caracteres")
+  .max(72, "A senha pode ter no máximo 72 caracteres")
+  .regex(/[A-Z]/, "A senha precisa conter ao menos uma letra maiúscula")
+  .regex(/[a-z]/, "A senha precisa conter ao menos uma letra minúscula")
+  .regex(/[0-9]/, "A senha precisa conter ao menos um número")
+  .regex(/[^A-Za-z0-9]/, "A senha precisa conter ao menos um caractere especial");
+
 const loginSchema = z.object({
   email: z.string().trim().email("E-mail inválido").max(255),
   password: z.string().min(1, "Informe sua senha").max(72),
-  fullName: z.string().trim().max(120).optional(),
-});
-
-const signupSchema = z.object({
-  email: z.string().trim().email("E-mail inválido").max(255),
-  password: strongPassword,
-  fullName: z.string().trim().max(120).optional(),
 });
 
 function PasswordRules() {
@@ -74,7 +75,6 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [forgotPassword, setForgotPassword] = useState(false);
   const [resetPassword, setResetPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -92,38 +92,20 @@ function AuthPage() {
     return () => subscription.subscription.unsubscribe();
   }, [navigate]);
 
-  const submit = async (mode: "login" | "signup") => {
-    const parsed = (mode === "signup" ? signupSchema : loginSchema).safeParse({
-      email: identifier,
-      password,
-      fullName,
-    });
+  const submit = async () => {
+    const parsed = loginSchema.safeParse({ email: identifier, password });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
       return;
     }
     setLoading(true);
     try {
-      if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: parsed.data.email.toLowerCase(),
-          password,
-        });
-        if (error) throw error;
-        navigate({ to: "/painel", replace: true });
-      } else {
-        const { data, error } = await supabase.auth.signUp({
-          email: parsed.data.email.toLowerCase(),
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { full_name: fullName },
-          },
-        });
-        if (error) throw error;
-        if (data.session) navigate({ to: "/painel", replace: true });
-        else toast.success("Conta criada! Confirme o e-mail para acessar.");
-      }
+      const { error } = await supabase.auth.signInWithPassword({
+        email: parsed.data.email.toLowerCase(),
+        password,
+      });
+      if (error) throw error;
+      navigate({ to: "/painel", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível continuar");
     } finally {
