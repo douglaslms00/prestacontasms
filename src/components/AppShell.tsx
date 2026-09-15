@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePermissions } from "@/hooks/useAuth";
 import { useIdleLogout } from "@/hooks/useIdleLogout";
 import { OBRAS_APP_URL } from "@/lib/obras";
+import { PwaInstallButton } from "@/components/PwaInstallButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ProfileBadge } from "@/components/ProfileBadge";
 
@@ -91,6 +92,9 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
                 </SheetHeader>
                 <div className="mt-4 border-b pb-4">
                   <ProfileBadge />
+                  <div className="mt-3">
+                    <PwaInstallButton variant="outline" size="sm" className="w-full" />
+                  </div>
                 </div>
                 <nav className="mt-4 flex flex-col gap-1">
                   {can("integrar_obras") ? (
