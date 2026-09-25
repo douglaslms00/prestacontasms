@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Plus, ArrowRight } from "lucide-react";
+import { Plus, ArrowRight, Pencil, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +45,7 @@ export const Route = createFileRoute("/_authenticated/painel")({
 type AdvanceRow = {
   id: string;
   title: string;
+  description: string | null;
   amount: number;
   issued_at: string;
   status: string;
@@ -68,8 +69,10 @@ function Painel() {
   const { isAdmin, can } = usePermissions(user?.id);
   const canCreate = can("criar_adiantamento");
   const canManage = canCreate || can("ver_todos") || can("aprovar_prestacao");
+  const canEditAndDelete = can("aprovar_prestacao");
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<AdvanceRow | null>(null);
 
   const advances = useQuery({
     queryKey: ["advances"],
@@ -77,7 +80,7 @@ function Painel() {
     queryFn: async (): Promise<AdvanceRow[]> => {
       const { data, error } = await supabase
         .from("advances")
-        .select("id, title, amount, issued_at, status, employee_id, obra_id, expenses(amount), advance_topups(amount)")
+        .select("id, title, description, amount, issued_at, status, employee_id, obra_id, expenses(amount), advance_topups(amount)")
         .order("issued_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as AdvanceRow[];
@@ -151,6 +154,39 @@ function Painel() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const update = useMutation({
+    mutationFn: async (form: z.infer<typeof advanceSchema>) => {
+      if (!editing) throw new Error("Adiantamento não encontrado");
+      const { error } = await supabase.from("advances").update({
+        title: form.title,
+        description: form.description ?? null,
+        amount: form.amount,
+        employee_id: form.employee_id,
+        obra_id: form.obra_id ?? null,
+        issued_at: form.issued_at,
+      }).eq("id", editing.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Adiantamento atualizado");
+      setEditing(null);
+      queryClient.invalidateQueries({ queryKey: ["advances"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (advanceId: string) => {
+      const { error } = await supabase.from("advances").delete().eq("id", advanceId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Adiantamento excluído");
+      queryClient.invalidateQueries({ queryKey: ["advances"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <AppShell subtitle={isAdmin || canManage ? "Perfil gestor" : "Perfil funcionário"}>
       <div className="grid gap-4 sm:grid-cols-3">
@@ -165,13 +201,15 @@ function Painel() {
 
       {canCreate ? (
         <div className="mt-10">
-          {open ? (
+          {open || editing ? (
             <NewAdvanceForm
+              key={editing?.id ?? "new"}
+              advance={editing ?? undefined}
               people={people.data ?? []}
               obras={obras.data ?? []}
-              onCancel={() => setOpen(false)}
-              onSubmit={(form) => create.mutate(form)}
-              pending={create.isPending}
+              onCancel={() => { setOpen(false); setEditing(null); }}
+              onSubmit={(form) => editing ? update.mutate(form) : create.mutate(form)}
+              pending={create.isPending || update.isPending}
             />
           ) : (
             <Button onClick={() => setOpen(true)}>
@@ -192,12 +230,12 @@ function Painel() {
           const liberado = liberadoDe(a);
           const saldo = liberado - gasto;
           return (
-            <Link
-              key={a.id}
-              to="/adiantamento/$id"
-              params={{ id: a.id }}
-              className="surface flex flex-wrap items-center justify-between gap-4 p-5 transition-colors hover:border-primary/40"
-            >
+            <div key={a.id} className="surface flex flex-wrap items-center justify-between gap-4 p-5">
+              <Link
+                to="/adiantamento/$id"
+                params={{ id: a.id }}
+                className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-4 transition-colors hover:text-primary"
+              >
               <div>
                 <div className="flex items-center gap-2">
                   <p className="font-semibold">{a.title}</p>
@@ -216,7 +254,26 @@ function Painel() {
                 <Figure label="Saldo" value={brl(saldo)} accent />
                 <ArrowRight className="size-4 text-muted-foreground" />
               </div>
-            </Link>
+              </Link>
+              {canEditAndDelete ? (
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button variant="ghost" size="icon" title="Editar adiantamento" onClick={() => setEditing(a)}>
+                    <Pencil className="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    title="Excluir adiantamento"
+                    disabled={remove.isPending}
+                    onClick={() => {
+                      if (confirm(`Excluir o adiantamento “${a.title}”? Esta ação não pode ser desfeita.`)) remove.mutate(a.id);
+                    }}
+                  >
+                    <Trash2 className="size-4 text-destructive" />
+                  </Button>
+                </div>
+              ) : null}
+            </div>
           );
         })}
       </div>
@@ -255,24 +312,26 @@ function Figure({ label, value, accent }: { label: string; value: string; accent
 }
 
 function NewAdvanceForm({
+  advance,
   people,
   obras,
   onCancel,
   onSubmit,
   pending,
 }: {
+  advance?: AdvanceRow;
   people: { id: string; full_name: string | null; email: string | null }[];
   obras: { id: string; nome: string; codigo: string }[];
   onCancel: () => void;
   onSubmit: (form: z.infer<typeof advanceSchema>) => void;
   pending: boolean;
 }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
-  const [employeeId, setEmployeeId] = useState("");
-  const [issuedAt, setIssuedAt] = useState(new Date().toISOString().slice(0, 10));
-  const [obraId, setObraId] = useState("");
+  const [title, setTitle] = useState(advance?.title ?? "");
+  const [description, setDescription] = useState(advance?.description ?? "");
+  const [amount, setAmount] = useState(advance ? String(advance.amount) : "");
+  const [employeeId, setEmployeeId] = useState(advance?.employee_id ?? "");
+  const [issuedAt, setIssuedAt] = useState(advance?.issued_at ?? new Date().toISOString().slice(0, 10));
+  const [obraId, setObraId] = useState(advance?.obra_id ?? "");
 
   const submit = () => {
     const parsed = advanceSchema.safeParse({
@@ -292,7 +351,7 @@ function NewAdvanceForm({
 
   return (
     <div className="surface space-y-4 p-6">
-      <h3 className="font-semibold">Novo adiantamento</h3>
+      <h3 className="font-semibold">{advance ? "Editar adiantamento" : "Novo adiantamento"}</h3>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label>Título</Label>
@@ -348,7 +407,7 @@ function NewAdvanceForm({
       </div>
       <div className="flex gap-2">
         <Button onClick={submit} disabled={pending}>
-          Liberar valor
+          {advance ? "Salvar alterações" : "Liberar valor"}
         </Button>
         <Button variant="ghost" onClick={onCancel}>
           Cancelar

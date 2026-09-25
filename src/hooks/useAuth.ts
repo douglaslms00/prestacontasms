@@ -55,6 +55,28 @@ export function useProfile(userId?: string) {
   });
 }
 
+export function useUserCargos(userId?: string) {
+  return useQuery({
+    queryKey: ["user-cargos-names", userId],
+    enabled: !!userId,
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await supabase
+        .from("user_cargos")
+        .select("cargos(name)")
+        .eq("user_id", userId!);
+      if (error) throw error;
+      const names = (data ?? [])
+        .map((row) => {
+          const cargo = row.cargos as unknown as { name?: string } | { name?: string }[] | null;
+          if (Array.isArray(cargo)) return cargo[0]?.name;
+          return cargo?.name;
+        })
+        .filter((name): name is string => !!name);
+      return [...new Set(names)];
+    },
+  });
+}
+
 export const PERMISSIONS = [
   "criar_adiantamento",
   "adicionar_verba",

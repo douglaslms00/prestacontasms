@@ -4,14 +4,22 @@ import { useQueryClient } from "@tanstack/react-query";
 import { HardHat, LogOut, Receipt, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession, usePermissions } from "@/hooks/useAuth";
+import { useSession, usePermissions, useProfile, useUserCargos } from "@/hooks/useAuth";
 import { OBRAS_APP_URL } from "@/lib/obras";
 
 export function AppShell({ children, subtitle }: { children: ReactNode; subtitle?: string }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useSession();
-  const { can } = usePermissions(user?.id);
+  const { can, isAdmin } = usePermissions(user?.id);
+  const { data: profile } = useProfile(user?.id);
+  const { data: cargos = [] } = useUserCargos(user?.id);
+
+  const email = profile?.email ?? user?.email ?? null;
+  const cargoLabel = [
+    ...(isAdmin ? ["Administrador"] : []),
+    ...cargos.filter((c) => c !== "Administrador"),
+  ].join(" · ");
 
   const signOut = async () => {
     await queryClient.cancelQueries();
@@ -31,7 +39,20 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
               {subtitle ? <p className="text-xs opacity-80">{subtitle}</p> : null}
             </div>
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {user ? (
+              <div className="mr-1 hidden text-right leading-tight sm:block">
+                {profile?.full_name ? (
+                  <p className="text-sm font-semibold">{profile.full_name}</p>
+                ) : null}
+                {email ? (
+                  <p className={profile?.full_name ? "text-xs opacity-80" : "text-sm font-medium"}>
+                    {email}
+                  </p>
+                ) : null}
+                <p className="text-xs opacity-70">{cargoLabel || "Sem cargo"}</p>
+              </div>
+            ) : null}
             {can("integrar_obras") ? (
               <Button variant="secondary" size="sm" asChild>
                 <a href={OBRAS_APP_URL} target="_blank" rel="noopener noreferrer">
