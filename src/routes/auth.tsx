@@ -174,65 +174,43 @@ function AuthPage() {
               {loading ? "Salvando..." : "Salvar nova senha"}
             </Button>
           </div>
-        ) : (
-        <Tabs defaultValue="login" className="mt-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Entrar</TabsTrigger>
-            <TabsTrigger value="signup">Criar conta</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="login" className="mt-6 space-y-4">
-            {forgotPassword ? (
-              <>
-                <div>
-                  <h2 className="font-semibold">Recuperar acesso</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">Informe seu e-mail para receber o link de redefinição de senha.</p>
-                </div>
-                <Field label="E-mail" value={identifier} onChange={setIdentifier} type="email" />
-
-                <Button className="w-full" disabled={loading} onClick={solicitarRedefinicao}>
-                  {loading ? "Enviando..." : "Enviar link de recuperação"}
-                </Button>
-                <Button variant="link" className="w-full" disabled={loading} onClick={() => setForgotPassword(false)}>
-                  Voltar para entrar
-                </Button>
-              </>
-            ) : (
-              <>
-                <Field label="E-mail" value={identifier} onChange={setIdentifier} type="email" />
-                <Field
-                  label="Senha"
-                  value={password}
-                  onChange={setPassword}
-                  type="password"
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      void submit("login");
-                    }
-                  }}
-                />
-                <Button className="w-full" disabled={loading} onClick={() => submit("login")}>
-                  Entrar
-                </Button>
-                <Button variant="link" className="w-full" disabled={loading} onClick={() => setForgotPassword(true)}>
-                  Esqueceu sua senha?
-                </Button>
-              </>
-            )}
-          </TabsContent>
-
-          <TabsContent value="signup" className="mt-6 space-y-4">
-            <Field label="Nome completo" value={fullName} onChange={setFullName} />
+        ) : forgotPassword ? (
+          <div className="mt-6 space-y-4">
+            <div>
+              <h2 className="font-semibold">Recuperar acesso</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Informe seu e-mail para receber o link de redefinição de senha.</p>
+            </div>
             <Field label="E-mail" value={identifier} onChange={setIdentifier} type="email" />
-            <Field label="Senha" value={password} onChange={setPassword} type="password" />
-            <PasswordRules />
-            <p className="sr-only">{PASSWORD_HINT}</p>
-            <Button className="w-full" disabled={loading} onClick={() => submit("signup")}>
-              Criar conta
+
+            <Button className="w-full" disabled={loading} onClick={solicitarRedefinicao}>
+              {loading ? "Enviando..." : "Enviar link de recuperação"}
             </Button>
-          </TabsContent>
-        </Tabs>
+            <Button variant="link" className="w-full" disabled={loading} onClick={() => setForgotPassword(false)}>
+              Voltar para entrar
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-6 space-y-4">
+            <Field label="E-mail" value={identifier} onChange={setIdentifier} type="email" />
+            <Field
+              label="Senha"
+              value={password}
+              onChange={setPassword}
+              type="password"
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void submit();
+                }
+              }}
+            />
+            <Button className="w-full" disabled={loading} onClick={submit}>
+              Entrar
+            </Button>
+            <Button variant="link" className="w-full" disabled={loading} onClick={() => setForgotPassword(true)}>
+              Esqueceu sua senha?
+            </Button>
+          </div>
         )}
       </div>
     </main>
