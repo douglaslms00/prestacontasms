@@ -41,15 +41,6 @@ const strongPassword = z
   .regex(/[0-9]/, "A senha precisa conter ao menos um número")
   .regex(/[^A-Za-z0-9]/, "A senha precisa conter ao menos um caractere especial");
 
-const strongPassword = z
-  .string()
-  .min(8, "A senha precisa ter no mínimo 8 caracteres")
-  .max(72, "A senha pode ter no máximo 72 caracteres")
-  .regex(/[A-Z]/, "A senha precisa conter ao menos uma letra maiúscula")
-  .regex(/[a-z]/, "A senha precisa conter ao menos uma letra minúscula")
-  .regex(/[0-9]/, "A senha precisa conter ao menos um número")
-  .regex(/[^A-Za-z0-9]/, "A senha precisa conter ao menos um caractere especial");
-
 const loginSchema = z.object({
   email: z.string().trim().email("E-mail inválido").max(255),
   password: z.string().min(1, "Informe sua senha").max(72),
