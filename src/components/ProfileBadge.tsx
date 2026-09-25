@@ -2,10 +2,12 @@ import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/hooks/useAuth";
+import { useSession, usePermissions, useUserCargos } from "@/hooks/useAuth";
 
 export function ProfileBadge() {
   const { user } = useSession();
+  const { isAdmin } = usePermissions(user?.id);
+  const { data: cargos = [] } = useUserCargos(user?.id);
 
   const profile = useQuery({
     queryKey: ["my-profile", user?.id],
@@ -38,11 +40,16 @@ export function ProfileBadge() {
   const name = profile.data?.full_name?.trim() || user.email || "Usuário";
   const email = profile.data?.email ?? user.email ?? "";
 
+  const cargoLabel = [
+    ...(isAdmin ? ["Administrador"] : []),
+    ...cargos.filter((c) => c !== "Administrador"),
+  ].join(" · ") || "Sem cargo";
+
   return (
     <Link
       to="/perfil"
-      aria-label={`Conectado como ${name}`}
-      title={`Conectado como ${name}${email ? ` (${email})` : ""}`}
+      aria-label={`Conectado como ${name} (${cargoLabel})`}
+      title={`Conectado como ${name}${email ? ` (${email})` : ""} - ${cargoLabel}`}
       className="flex min-w-0 items-center gap-2 rounded-full bg-primary-foreground/10 py-1 pl-1 pr-3 transition hover:bg-primary-foreground/20"
     >
       <span className="size-8 shrink-0 overflow-hidden rounded-full border border-primary-foreground/30 bg-primary-foreground/20">
@@ -54,10 +61,11 @@ export function ProfileBadge() {
           </span>
         )}
       </span>
-      <span className="hidden min-w-0 flex-col leading-tight sm:flex">
+      <span className="flex min-w-0 flex-col leading-tight">
         <span className="truncate text-xs font-semibold">{name}</span>
-        {email ? <span className="truncate text-[10px] opacity-80">{email}</span> : null}
+        <span className="truncate text-[10px] font-medium text-primary-foreground/80">{cargoLabel}</span>
       </span>
     </Link>
   );
 }
+
