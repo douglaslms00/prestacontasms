@@ -55,84 +55,86 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
 
           <div className="flex items-center gap-2">
             <NotificationBell />
+            <ProfileBadge />
 
-            {/* Desktop */}
-            <div className="hidden items-center gap-2 md:flex">
-              <ProfileBadge />
-            {can("integrar_obras") ? (
-              <Button variant="secondary" size="sm" asChild>
-                <a href={OBRAS_APP_URL} target="_blank" rel="noopener noreferrer">
-                  <HardHat className="mr-2 size-4" /> Gestão de Obras
-                </a>
-              </Button>
-            ) : null}
-            {links.map(({ to, label, icon: Icon }) => (
-              <Button key={to} variant="secondary" size="sm" asChild>
-                <Link to={to}>
-                  <Icon className="mr-2 size-4" /> {label}
-                </Link>
-              </Button>
-            ))}
-            <Button variant="secondary" size="sm" onClick={signOut}>
-              <LogOut className="mr-2 size-4" /> Sair
-            </Button>
-          </div>
-
-          {/* Mobile */}
-          <div className="flex items-center gap-2 md:hidden">
+            {/* Menu Lateral (Desktop & Mobile) */}
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="secondary" size="icon" aria-label="Abrir menu">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="rounded-full bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground border border-primary-foreground/20"
+                  aria-label="Abrir menu de módulos"
+                >
                   <Menu className="size-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-72">
-                <SheetHeader>
-                  <SheetTitle>Menu</SheetTitle>
-                </SheetHeader>
-                <div className="mt-4 border-b pb-4">
-                  <ProfileBadge />
-                  <div className="mt-3">
-                    <PwaInstallButton variant="outline" size="sm" className="w-full" />
+              <SheetContent side="right" className="w-80 flex flex-col justify-between">
+                <div>
+                  <SheetHeader className="border-b pb-4 text-left">
+                    <SheetTitle className="flex items-center gap-2 text-base font-semibold">
+                      <Receipt className="size-5 text-primary" />
+                      Navegação
+                    </SheetTitle>
+                  </SheetHeader>
+
+                  <div className="mt-4 border-b pb-4">
+                    <ProfileBadge />
+                    <div className="mt-3">
+                      <PwaInstallButton variant="outline" size="sm" className="w-full" />
+                    </div>
                   </div>
-                </div>
-                <nav className="mt-4 flex flex-col gap-1">
-                  {can("integrar_obras") ? (
-                    <a
-                      href={OBRAS_APP_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium hover:bg-accent"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <HardHat className="size-4" /> Gestão de Obras
-                    </a>
-                  ) : null}
-                  {links.map(({ to, label, icon: Icon }) => (
+
+                  <nav className="mt-5 flex flex-col gap-1.5">
                     <Link
-                      key={to}
-                      to={to}
+                      to="/painel"
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium hover:bg-accent"
-                      activeProps={{ className: "bg-accent text-primary" }}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground"
+                      activeProps={{ className: "bg-primary/10 text-primary font-semibold" }}
                     >
-                      <Icon className="size-4" /> {label}
+                      <Receipt className="size-4 shrink-0" /> Painel de Adiantamentos
                     </Link>
-                  ))}
-                  <button
-                    type="button"
+
+                    {can("integrar_obras") ? (
+                      <a
+                        href={OBRAS_APP_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <HardHat className="size-4 shrink-0" /> Gestão de Obras
+                      </a>
+                    ) : null}
+
+                    {links.map(({ to, label, icon: Icon }) => (
+                      <Link
+                        key={to}
+                        to={to}
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground"
+                        activeProps={{ className: "bg-primary/10 text-primary font-semibold" }}
+                      >
+                        <Icon className="size-4 shrink-0" /> {label}
+                      </Link>
+                    ))}
+                  </nav>
+                </div>
+
+                <div className="border-t pt-4">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onClick={() => {
                       setMenuOpen(false);
                       void signOut();
                     }}
-                    className="flex items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium text-destructive hover:bg-accent"
                   >
-                    <LogOut className="size-4" /> Sair
-                  </button>
-                </nav>
+                    <LogOut className="mr-2 size-4" /> Sair da conta
+                  </Button>
+                </div>
               </SheetContent>
             </Sheet>
-          </div>
           </div>
         </div>
       </header>
