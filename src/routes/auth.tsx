@@ -3,11 +3,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
@@ -31,18 +29,52 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-const schema = z.object({
+const PASSWORD_HINT =
+  "A senha deve ter de 8 a 72 caracteres e conter letras maiúsculas, letras minúsculas, números e ao menos um caractere especial (ex.: !@#$%).";
+
+const strongPassword = z
+  .string()
+  .min(8, "A senha precisa ter no mínimo 8 caracteres")
+  .max(72, "A senha pode ter no máximo 72 caracteres")
+  .regex(/[A-Z]/, "A senha precisa conter ao menos uma letra maiúscula")
+  .regex(/[a-z]/, "A senha precisa conter ao menos uma letra minúscula")
+  .regex(/[0-9]/, "A senha precisa conter ao menos um número")
+  .regex(/[^A-Za-z0-9]/, "A senha precisa conter ao menos um caractere especial");
+
+const strongPassword = z
+  .string()
+  .min(8, "A senha precisa ter no mínimo 8 caracteres")
+  .max(72, "A senha pode ter no máximo 72 caracteres")
+  .regex(/[A-Z]/, "A senha precisa conter ao menos uma letra maiúscula")
+  .regex(/[a-z]/, "A senha precisa conter ao menos uma letra minúscula")
+  .regex(/[0-9]/, "A senha precisa conter ao menos um número")
+  .regex(/[^A-Za-z0-9]/, "A senha precisa conter ao menos um caractere especial");
+
+const loginSchema = z.object({
   email: z.string().trim().email("E-mail inválido").max(255),
-  password: z.string().min(6, "A senha precisa ter ao menos 6 caracteres").max(72),
-  fullName: z.string().trim().max(120).optional(),
+  password: z.string().min(1, "Informe sua senha").max(72),
 });
+
+function PasswordRules() {
+  return (
+    <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+      <p className="font-medium text-foreground">Requisitos da senha</p>
+      <ul className="mt-1 list-disc space-y-0.5 pl-4">
+        <li>Mínimo de 8 e máximo de 72 caracteres</li>
+        <li>Ao menos uma letra maiúscula (A-Z)</li>
+        <li>Ao menos uma letra minúscula (a-z)</li>
+        <li>Ao menos um número (0-9)</li>
+        <li>Ao menos um caractere especial (!@#$%&amp;*)</li>
+      </ul>
+    </div>
+  );
+}
 
 function AuthPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [forgotPassword, setForgotPassword] = useState(false);
   const [resetPassword, setResetPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -60,31 +92,20 @@ function AuthPage() {
     return () => subscription.subscription.unsubscribe();
   }, [navigate]);
 
-  const submit = async (mode: "login" | "signup") => {
-    const parsed = schema.safeParse({ email, password, fullName });
+  const submit = async () => {
+    const parsed = loginSchema.safeParse({ email: identifier, password });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
       return;
     }
     setLoading(true);
     try {
-      if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        navigate({ to: "/painel", replace: true });
-      } else {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { full_name: fullName },
-          },
-        });
-        if (error) throw error;
-        if (data.session) navigate({ to: "/painel", replace: true });
-        else toast.success("Conta criada! Confirme o e-mail para acessar.");
-      }
+      const { error } = await supabase.auth.signInWithPassword({
+        email: parsed.data.email.toLowerCase(),
+        password,
+      });
+      if (error) throw error;
+      navigate({ to: "/painel", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível continuar");
     } finally {
@@ -92,41 +113,34 @@ function AuthPage() {
     }
   };
 
-  const google = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      toast.error("Falha ao entrar com Google");
-      return;
-    }
-    if (result.redirected) return;
-    navigate({ to: "/painel", replace: true });
-  };
-
   const solicitarRedefinicao = async () => {
-    const parsed = z.string().trim().email("Informe um e-mail válido").safeParse(email);
+    const parsed = z.string().trim().email("Informe um e-mail válido").safeParse(identifier);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Informe um e-mail válido");
       return;
     }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
+      const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.toLowerCase(), {
         redirectTo: `${window.location.origin}/auth?reset=1`,
       });
       if (error) throw error;
-      toast.success("Se houver uma conta com este e-mail, você receberá um link para redefinir a senha.");
+      toast.success(
+        "Se houver uma conta com este e-mail, você receberá um link para redefinir a senha.",
+      );
       setForgotPassword(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Não foi possível enviar o link de recuperação");
+      toast.error(
+        err instanceof Error ? err.message : "Não foi possível enviar o link de recuperação",
+      );
     } finally {
       setLoading(false);
     }
   };
 
+
   const salvarNovaSenha = async () => {
-    const parsed = z.string().min(6, "A senha precisa ter ao menos 6 caracteres").max(72).safeParse(newPassword);
+    const parsed = strongPassword.safeParse(newPassword);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Senha inválida");
       return;
@@ -162,6 +176,7 @@ function AuthPage() {
               <h2 className="font-semibold">Criar nova senha</h2>
               <p className="mt-1 text-sm text-muted-foreground">Escolha uma nova senha para recuperar o acesso.</p>
             </div>
+            <PasswordRules />
             <Field label="Nova senha" value={newPassword} onChange={setNewPassword} type="password" />
             <Field label="Confirmar nova senha" value={confirmPassword} onChange={setConfirmPassword} type="password" />
             <Button className="w-full" disabled={loading} onClick={salvarNovaSenha}>
@@ -182,7 +197,8 @@ function AuthPage() {
                   <h2 className="font-semibold">Recuperar acesso</h2>
                   <p className="mt-1 text-sm text-muted-foreground">Informe seu e-mail para receber o link de redefinição de senha.</p>
                 </div>
-                <Field label="E-mail" value={email} onChange={setEmail} type="email" />
+                <Field label="E-mail" value={identifier} onChange={setIdentifier} type="email" />
+
                 <Button className="w-full" disabled={loading} onClick={solicitarRedefinicao}>
                   {loading ? "Enviando..." : "Enviar link de recuperação"}
                 </Button>
@@ -192,7 +208,7 @@ function AuthPage() {
               </>
             ) : (
               <>
-                <Field label="E-mail" value={email} onChange={setEmail} type="email" />
+                <Field label="E-mail" value={identifier} onChange={setIdentifier} type="email" />
                 <Field
                   label="Senha"
                   value={password}
@@ -217,23 +233,16 @@ function AuthPage() {
 
           <TabsContent value="signup" className="mt-6 space-y-4">
             <Field label="Nome completo" value={fullName} onChange={setFullName} />
-            <Field label="E-mail" value={email} onChange={setEmail} type="email" />
+            <Field label="E-mail" value={identifier} onChange={setIdentifier} type="email" />
             <Field label="Senha" value={password} onChange={setPassword} type="password" />
+            <PasswordRules />
+            <p className="sr-only">{PASSWORD_HINT}</p>
             <Button className="w-full" disabled={loading} onClick={() => submit("signup")}>
               Criar conta
             </Button>
           </TabsContent>
         </Tabs>
         )}
-
-        {!resetPassword && <>
-          <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="h-px flex-1 bg-border" /> ou <span className="h-px flex-1 bg-border" />
-          </div>
-          <Button variant="outline" className="w-full" onClick={google}>
-            Continuar com Google
-          </Button>
-        </>}
       </div>
     </main>
   );
@@ -281,3 +290,5 @@ function Field({
     </div>
   );
 }
+
+export default AuthPage;

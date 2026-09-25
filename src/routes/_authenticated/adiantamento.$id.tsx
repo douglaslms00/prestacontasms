@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import {
   FileText,
   HardHat,
   Lock,
+  Pencil,
   Paperclip,
   Send,
   Sparkles,
@@ -31,6 +32,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePermissions } from "@/hooks/useAuth";
 import { brl, dateBR, statusLabel } from "@/lib/format";
@@ -93,6 +105,12 @@ function Detalhe() {
   const [topupDate, setTopupDate] = useState(new Date().toISOString().slice(0, 10));
   const [reading, setReading] = useState(false);
   const [ocrFilled, setOcrFilled] = useState<string[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editAmount, setEditAmount] = useState("");
+  const [editIssuedAt, setEditIssuedAt] = useState("");
+  const navigate = useNavigate();
   const runOcr = useServerFn(readReceipt);
   const runPush = useServerFn(pushPrestacao);
 
@@ -175,6 +193,16 @@ function Detalhe() {
   const isOpen = advance.data?.status === "aberto";
   const isReview = advance.data?.status === "em_analise";
   const isClosed = advance.data?.status === "fechado";
+  const canManage = isAdmin || canReview;
+
+  const startEdit = () => {
+    if (!advance.data) return;
+    setEditTitle(advance.data.title ?? "");
+    setEditDescription(advance.data.description ?? "");
+    setEditAmount(String(advance.data.amount ?? ""));
+    setEditIssuedAt(advance.data.issued_at ?? "");
+    setEditing(true);
+  };
 
   const toDataUrl = (f: File) =>
     new Promise<string>((resolve, reject) => {
@@ -415,6 +443,46 @@ function Detalhe() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const saveAdvance = useMutation({
+    mutationFn: async () => {
+      const title = editTitle.trim();
+      const value = Number(editAmount);
+      if (title.length < 2) throw new Error("Informe um título válido");
+      if (!Number.isFinite(value) || value <= 0) throw new Error("Informe um valor válido");
+      if (!editIssuedAt) throw new Error("Informe a data de liberação");
+      const { error } = await supabase
+        .from("advances")
+        .update({
+          title: title.slice(0, 200),
+          description: editDescription.trim() ? editDescription.trim().slice(0, 1000) : null,
+          amount: value,
+          issued_at: editIssuedAt,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Adiantamento atualizado");
+      setEditing(false);
+      queryClient.invalidateQueries({ queryKey: ["advance", id] });
+      queryClient.invalidateQueries({ queryKey: ["advances"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const removeAdvance = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("advances").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Adiantamento excluído");
+      queryClient.invalidateQueries({ queryKey: ["advances"] });
+      void navigate({ to: "/painel" });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const openReceipt = async (path: string, download?: boolean) => {
     const { data, error } = await supabase.storage
       .from("cupons")
@@ -468,10 +536,85 @@ function Detalhe() {
             </Badge>
           ) : null}
         </div>
-        <Button variant="outline" onClick={exportPdf} disabled={exporting || !advance.data}>
-          <FileText className="mr-2 size-4" /> {exporting ? "Gerando…" : "Relatório PDF"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={exportPdf} disabled={exporting || !advance.data}>
+            <FileText className="mr-2 size-4" /> {exporting ? "Gerando…" : "Relatório PDF"}
+          </Button>
+          {canManage && advance.data ? (
+            <>
+              <Button variant="outline" onClick={startEdit}>
+                <Pencil className="mr-2 size-4" /> Editar
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={removeAdvance.isPending}>
+                    <Trash2 className="mr-2 size-4" /> Excluir
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir adiantamento?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Todas as despesas, cupons vinculados e verbas adicionais deste adiantamento
+                      serão removidos. Esta ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => removeAdvance.mutate()}>
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
+          ) : null}
+        </div>
       </div>
+
+      {canManage && editing ? (
+        <div className="surface mt-6 space-y-4 p-6">
+          <h2 className="font-semibold">Editar adiantamento</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Título</Label>
+              <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Valor inicial (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={editAmount}
+                onChange={(e) => setEditAmount(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Data de liberação</Label>
+              <Input
+                type="date"
+                value={editIssuedAt}
+                onChange={(e) => setEditIssuedAt(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Descrição</Label>
+              <Textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => saveAdvance.mutate()} disabled={saveAdvance.isPending}>
+              {saveAdvance.isPending ? "Salvando…" : "Salvar alterações"}
+            </Button>
+            <Button variant="ghost" onClick={() => setEditing(false)}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      ) : null}
       {advance.data?.description ? (
         <p className="mt-1 text-sm text-muted-foreground">{advance.data.description}</p>
       ) : null}
@@ -602,7 +745,17 @@ function Detalhe() {
             onValueChange={(v) =>
               supabase
                 .from("advances")
-                .update({ status: v as "aberto" | "em_analise" | "fechado" })
+                .update(
+                  v === "aberto"
+                    ? {
+                        status: "aberto",
+                        decision: null,
+                        review_comment: null,
+                        reviewed_at: null,
+                        reviewed_by: null,
+                      }
+                    : { status: v as "em_analise" | "fechado" }
+                )
                 .eq("id", id)
                 .then(({ error }) => {
                   if (error) toast.error(error.message);
@@ -691,7 +844,7 @@ function Detalhe() {
         </>
       ) : null}
 
-      {isOwner && isOpen ? (
+      {(isOwner || canManage) && isOpen ? (
         <div className="surface mt-8 space-y-4 p-6">
           <h2 className="font-semibold">Lançar despesa</h2>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -797,7 +950,7 @@ function Detalhe() {
         </div>
       ) : null}
 
-      {isOwner && isOpen ? (
+      {(isOwner || canManage) && isOpen ? (
         <div className="surface mt-6 flex flex-wrap items-center justify-between gap-4 p-6">
           <div>
             <p className="font-semibold">Enviar prestação final</p>

@@ -1,7 +1,10 @@
 import { OBRAS_APP_URL } from "@/lib/obras";
 
 export function baseUrl() {
-  return (process.env["OBRAS_API_URL"] ?? OBRAS_APP_URL).replace(/\/$/, "");
+  // A URL configurada aponta para a tela de login (/auth); para as chamadas de
+  // API usamos apenas a origem (ex.: https://msgestaopro.lovable.app).
+  const raw = process.env["OBRAS_API_URL"] ?? OBRAS_APP_URL;
+  return raw.replace(/\/auth\/?$/, "").replace(/\/$/, "");
 }
 
 export function apiKey() {
