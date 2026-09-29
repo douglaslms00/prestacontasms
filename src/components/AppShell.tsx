@@ -80,9 +80,6 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
 
                   <div className="mt-4 border-b pb-4">
                     <ProfileBadge />
-                    <div className="mt-3">
-                      <PwaInstallButton variant="outline" size="sm" className="w-full" />
-                    </div>
                   </div>
 
                   <nav className="mt-5 flex flex-col gap-1.5">
@@ -121,7 +118,8 @@ export function AppShell({ children, subtitle }: { children: ReactNode; subtitle
                   </nav>
                 </div>
 
-                <div className="border-t pt-4">
+                <div className="border-t pt-4 space-y-2">
+                  <PwaInstallButton variant="outline" size="sm" className="w-full" />
                   <Button
                     variant="outline"
                     className="w-full justify-start text-destructive hover:bg-destructive/10 hover:text-destructive"

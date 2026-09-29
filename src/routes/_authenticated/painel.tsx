@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePermissions } from "@/hooks/useAuth";
-import { PwaInstallButton } from "@/components/PwaInstallButton";
 import { brl, dateBR, statusLabel } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/painel")({
@@ -198,10 +197,6 @@ function Painel() {
           value={brl(totalLiberado - totalGasto)}
           highlight
         />
-      </div>
-
-      <div className="mt-6 flex justify-center sm:justify-start">
-        <PwaInstallButton variant="outline" />
       </div>
 
       {canCreate ? (
