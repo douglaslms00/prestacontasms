@@ -125,10 +125,15 @@ function Painel() {
   };
 
   const rows = advances.data ?? [];
+  // Usuário comum (sem perfil gestor) só enxerga adiantamentos ativos.
+  // Fechado = prestação aprovada -> some para o usuário, visível só p/ gestor/admin.
+  const isPrivileged = isAdmin || canManage;
+  const visibleRows = isPrivileged ? rows : rows.filter((a) => a.status !== "fechado");
+  const hiddenCount = rows.length - visibleRows.length;
   const liberadoDe = (a: AdvanceRow) =>
     Number(a.amount) + (a.advance_topups ?? []).reduce((t, v) => t + Number(v.amount), 0);
-  const totalLiberado = rows.reduce((s, a) => s + liberadoDe(a), 0);
-  const totalGasto = rows.reduce(
+  const totalLiberado = visibleRows.reduce((s, a) => s + liberadoDe(a), 0);
+  const totalGasto = visibleRows.reduce(
     (s, a) => s + a.expenses.reduce((t, e) => t + Number(e.amount), 0),
     0,
   );
@@ -220,12 +225,22 @@ function Painel() {
       ) : null}
 
       <h2 className="mt-10 text-xl font-semibold">Adiantamentos</h2>
+      {!isPrivileged && !advances.isLoading && hiddenCount > 0 ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Exibindo apenas adiantamentos ativos. {hiddenCount} prestação(ões) aprovada(s){" "}
+          concluída(s) e oculta(s) da sua visão.
+        </p>
+      ) : null}
       <div className="mt-4 space-y-3">
         {advances.isLoading ? <p className="text-sm text-muted-foreground">Carregando…</p> : null}
-        {!advances.isLoading && rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhum adiantamento por aqui ainda.</p>
+        {!advances.isLoading && visibleRows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {hiddenCount > 0
+              ? "Nenhum adiantamento ativo no momento. Suas prestações aprovadas foram concluídas."
+              : "Nenhum adiantamento por aqui ainda."}
+          </p>
         ) : null}
-        {rows.map((a) => {
+        {visibleRows.map((a) => {
           const gasto = a.expenses.reduce((t, e) => t + Number(e.amount), 0);
           const liberado = liberadoDe(a);
           const saldo = liberado - gasto;

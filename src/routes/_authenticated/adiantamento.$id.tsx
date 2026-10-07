@@ -86,9 +86,13 @@ const expenseSchema = z.object({
 function Detalhe() {
   const { id } = Route.useParams();
   const { user } = useSession();
-  const { isAdmin, can } = usePermissions(user?.id);
+  const { isAdmin, can, isLoading: permsLoading } = usePermissions(user?.id);
   const canReview = can("aprovar_prestacao");
   const canTopup = can("adicionar_verba");
+  const canVerTodos = can("ver_todos");
+  const canCriar = can("criar_adiantamento");
+  // Gestor/admin enxerga tudo; usuário comum só vê adiantamento ativo.
+  const isPrivileged = isAdmin || canReview || canVerTodos || canCriar || canTopup;
   const queryClient = useQueryClient();
 
   const [description, setDescription] = useState("");
@@ -520,6 +524,29 @@ function Detalhe() {
       setExporting(false);
     }
   };
+
+  const isHiddenForUser =
+    !permsLoading && !isPrivileged && advance.data?.status === "fechado";
+
+  if (isHiddenForUser) {
+    return (
+      <AppShell subtitle="Adiantamento concluído">
+        <Link to="/painel" className="inline-flex items-center text-sm text-muted-foreground">
+          <ArrowLeft className="mr-1 size-4" /> Voltar
+        </Link>
+        <div className="surface mt-4 p-6">
+          <h1 className="text-xl font-semibold">Prestação concluída</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Esta prestação de contas foi aprovada e encerrada. Ela não aparece mais no seu
+            painel e só fica visível para o gestor ou administrador.
+          </p>
+          <Button asChild className="mt-4">
+            <Link to="/painel">Voltar ao painel</Link>
+          </Button>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell subtitle={advance.data?.title ?? ""}>
